@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Suivi Performance Golf</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Golf Perf">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#132018">
+<style>
+:root{--bg:#f4f1e6;--card:#fffdf6;--fg:#16231b;--dim:#5b665e;--line:rgba(22,35,27,.14);--gold:#8a6d0b;--accent:#1f5a3a;--bad:#b23a32;--good:#3d7a3a;--input:#fff;
+--c-Matteo:#8a6d0b;--c-Xander:#2f7f92;--c-Sunil:#b23a32;--c-Davon:#4d7a3a}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#132018;--card:#1b2e22;--fg:#f3f1e7;--dim:#a9b0a6;--line:rgba(243,241,231,.14);--gold:#c9a227;--accent:#7fc29a;--bad:#e0766d;--good:#8fb878;--input:#0d1712;--c-Matteo:#c9a227;--c-Xander:#6fa8b5;--c-Sunil:#e0766d;--c-Davon:#8fa878;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#132018;--card:#1b2e22;--fg:#f3f1e7;--dim:#a9b0a6;--line:rgba(243,241,231,.14);--gold:#c9a227;--accent:#7fc29a;--bad:#e0766d;--good:#8fb878;--input:#0d1712;--c-Matteo:#c9a227;--c-Xander:#6fa8b5;--c-Sunil:#e0766d;--c-Davon:#8fa878;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,system-ui,"Helvetica Neue",sans-serif;padding-top:calc(8px + env(safe-area-inset-top,0px));padding-bottom:calc(40px + env(safe-area-inset-bottom,0px));margin:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+*{box-sizing:border-box}
+#app{max-width:860px;margin:0 auto}
+h1{font-size:26px;margin:6px 0 2px;letter-spacing:-.02em}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin:0 0 10px}
+h3{font-size:15px;margin:14px 0 6px}
+.sub{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.row{display:flex;gap:8px;overflow-x:auto;padding:10px 0 4px;-webkit-overflow-scrolling:touch}
+.chip{flex:0 0 auto;padding:8px 16px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--dim);font-size:14px;font-weight:600}
+.chip.on{color:var(--fg);border-color:var(--pc,var(--gold));background:color-mix(in srgb,var(--pc,var(--gold)) 18%,transparent)}
+.tab{flex:0 0 auto;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--dim);font-size:13px;font-weight:600}
+.tab.on{color:var(--fg);border-color:var(--gold);background:color-mix(in srgb,var(--gold) 15%,transparent)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.stat{border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:0}
+.stat b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+.stat span{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)}
+.pos{color:var(--good)}.neg{color:var(--bad)}.dim{color:var(--dim)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+td,th{padding:6px 6px;text-align:left;border-top:1px solid var(--line);white-space:nowrap}
+th{font-weight:600;color:var(--dim);border-top:0}
+.sc{overflow-x:auto}
+label{display:block;font-size:11px;color:var(--dim);margin-bottom:2px}
+input,select,textarea{width:100%;background:var(--input);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font:inherit;font-size:16px;min-width:0}
+textarea{min-height:90px}
+form .g{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:8px}
+button.pri{background:var(--gold);color:#fff;border:0;border-radius:8px;padding:10px 14px;font-size:14px;font-weight:700}
+:root[data-theme="dark"] button.pri{color:#0d1712}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) button.pri{color:#0d1712}}
+button.ghost{background:transparent;border:1px solid var(--line);color:var(--dim);border-radius:8px;padding:6px 10px;font-size:12px}
+button.x{background:none;border:0;color:var(--dim);font-size:16px;padding:2px 6px}
+.msg{font-size:12.5px;padding:8px 10px;border-radius:8px;border:1px solid var(--line);margin:8px 0}
+.vid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+video{width:100%;border-radius:10px;background:#000;max-height:300px}
+.tag{display:inline-block;font-size:10.5px;padding:2px 7px;border-radius:999px;border:1px solid var(--line);color:var(--dim);margin-right:4px}
+.note{white-space:pre-wrap;font-size:13.5px;line-height:1.55}
+.note h4{margin:14px 0 4px;font-size:14px}
+.note li{margin-left:16px;list-style:disc}
+svg text{fill:var(--dim);font-size:10px}
+.bar{height:8px;border-radius:4px;background:var(--bad)}
+.bar.p{background:var(--good)}
+a{color:var(--accent)}
+</style>
+</head><body>
+<div id="app"></div>
+<script>
+(function(){
+var PL=["Matteo","Xander","Sunil","Davon"];
+var TABS=[["home","Accueil"],["comp","Compétitions"],["tests","Tests"],["speed","Vitesse"],["tech","Technique"],["vid","Vidéos"],["cal","Calendrier"],["notes","Notes"],["data","Données"]];
+var TESTS={putting:["Putting",60],fers:["Fers",120],driver:["Driver",90],wedging:["Wedging",135],autre:["Autre",100]};
+var S={player:"Matteo",tab:"home",d:{},ready:{},msg:null,calf:"all",note:null,up:null};
+var db=true,assets=true,dl=true,pending=false;
+
+var _db;function idbOpen(){return _db||(_db=new Promise(function(res,rej){var r=indexedDB.open("golfperf",1);r.onupgradeneeded=function(){r.result.createObjectStore("kv");r.result.createObjectStore("blobs")};r.onsuccess=function(){res(r.result)};r.onerror=function(){rej(r.error)}}))}
+function tx(st,mode,fn){return idbOpen().then(function(d){return new Promise(function(res,rej){var t=d.transaction(st,mode),r=fn(t.objectStore(st));t.oncomplete=function(){res(r&&r.result)};t.onerror=t.onabort=function(){rej(t.error)}})})}
+function idbSet(k,v){return tx("kv","readwrite",function(s){return s.put(v,k)})}
+function idbDel(k){return tx("kv","readwrite",function(s){return s.delete(k)})}
+function idbAll(){return idbOpen().then(function(d){return new Promise(function(res,rej){var o={},c=d.transaction("kv","readonly").objectStore("kv").openCursor();c.onsuccess=function(){var u=c.result;if(u){o[u.key]=u.value;u.continue()}else res(o)};c.onerror=function(){rej(c.error)}})})}
+function blobPut(k,b){return tx("blobs","readwrite",function(s){return s.put(b,k)})}
+function blobGet(k){return tx("blobs","readonly",function(s){return s.get(k)})}
+function blobDel(k){return tx("blobs","readwrite",function(s){return s.delete(k)})}
+var URLS={};function hydrate(){document.querySelectorAll("[data-blob]").forEach(function(el){var id=el.getAttribute("data-blob");if(URLS[id]){el.src=URLS[id];return}blobGet(id).then(function(b){if(b){URLS[id]=URL.createObjectURL(b);el.src=URLS[id]}})})}
+var $=function(s){return document.querySelector(s)};
+function esc(x){return String(x==null?"":x).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function uid(){return Math.random().toString(36).slice(2,10)}
+function items(col,id){var o=S.d[col]&&S.d[col][id];return(o&&o.items)||[]}
+function fmt(n,k){return n==null||isNaN(n)?"—":Number(n).toLocaleString("fr-FR",{minimumFractionDigits:k==null?1:k,maximumFractionDigits:k==null?1:k})}
+function fd(iso){if(!iso)return"";var p=iso.split("-");return p[2]+"/"+p[1]+"/"+p[0]}
+function ts(iso){return new Date(iso+"T12:00:00").getTime()}
+function num(v){if(v===""||v==null)return null;var x=parseFloat(String(v).replace(",","."));return isNaN(x)?null:x}
+function sgc(v){return v==null?"dim":v>=0?"pos":"neg"}
+function sg(v){return v==null?"—":(v>0?"+":"")+fmt(v,2)}
+function avg(a){a=a.filter(function(x){return x!=null});return a.length?a.reduce(function(s,x){return s+x},0)/a.length:null}
+function save(col,id,list){
+  S.d[col]=S.d[col]||{};S.d[col][id]={items:list};render();
+  return idbSet(col+"/"+id,{items:list}).catch(function(){S.msg="Échec de l'enregistrement sur l'appareil.";render()})
+}
+function chart(series,o){
+  o=o||{};var W=640,H=o.h||190,pl=34,pr=8,pt=10,pb=22,pts=[];
+  series.forEach(function(s){s.pts.forEach(function(p){if(p[1]!=null)pts.push(p)})});
+  if(!pts.length)return'<div class="dim" style="font-size:12px">Pas encore de données.</div>';
+  var x0=Math.min.apply(0,pts.map(function(p){return p[0]})),x1=Math.max.apply(0,pts.map(function(p){return p[0]}));
+  var y0=Math.min.apply(0,pts.map(function(p){return p[1]})),y1=Math.max.apply(0,pts.map(function(p){return p[1]}));
+  if(o.zero){y0=Math.min(y0,0);y1=Math.max(y1,0)}
+  if(y1==y0){y1+=1;y0-=1}var m=(y1-y0)*.08;y0-=m;y1+=m;if(x1==x0){x1+=864e5;x0-=864e5}
+  var X=function(x){return pl+(x-x0)/(x1-x0)*(W-pl-pr)},Y=function(y){return pt+(1-(y-y0)/(y1-y0))*(H-pt-pb)};
+  var g="";for(var i=0;i<4;i++){var v=y0+(y1-y0)*i/3;g+='<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" stroke="var(--line)"/><text x="'+(pl-4)+'" y="'+(Y(v)+3)+'" text-anchor="end">'+fmt(v,o.d==null?1:o.d)+'</text>'}
+  if(o.zero&&y0<0&&y1>0)g+='<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+Y(0)+'" y2="'+Y(0)+'" stroke="var(--dim)" stroke-dasharray="3 3"/>';
+  [0,.5,1].forEach(function(f){var t=x0+(x1-x0)*f,dt=new Date(t);g+='<text x="'+X(t)+'" y="'+(H-6)+'" text-anchor="'+(f==0?"start":f==1?"end":"middle")+'">'+String(dt.getDate()).padStart(2,"0")+"/"+String(dt.getMonth()+1).padStart(2,"0")+"</text>"});
+  series.forEach(function(s){var p=s.pts.filter(function(q){return q[1]!=null});
+    g+='<polyline fill="none" stroke="'+s.color+'" stroke-width="2.4" points="'+p.map(function(q){return X(q[0])+","+Y(q[1])}).join(" ")+'"/>';
+    p.forEach(function(q){g+='<circle cx="'+X(q[0])+'" cy="'+Y(q[1])+'" r="3.2" fill="'+s.color+'"/>'})});
+  var lg=series.length>1?'<div style="font-size:11.5px;margin-top:4px">'+series.map(function(s){return'<span style="color:'+s.color+'">● </span>'+esc(s.name)+"&nbsp;&nbsp;"}).join("")+"</div>":"";
+  return'<svg viewBox="0 0 '+W+" "+H+'" width="100%" role="img">'+g+"</svg>"+lg
+}
+var pc=function(p){return"var(--c-"+p+")"};
+function hdr(){
+  return'<div class="sub">Pôle Performance FFGolf</div><h1>Suivi Performance</h1>'+
+  '<div class="row">'+PL.map(function(p){return'<button class="chip'+(S.player==p?" on":"")+'" style="--pc:'+pc(p)+'" data-act="pl" data-v="'+p+'">'+p+"</button>"}).join("")+"</div>"+
+  '<div class="row" style="padding-top:2px">'+TABS.map(function(t){return'<button class="tab'+(S.tab==t[0]?" on":"")+'" data-act="tab" data-v="'+t[0]+'">'+t[1]+"</button>"}).join("")+"</div>"+
+  (S.msg?'<div class="msg">'+esc(S.msg)+' <button class="x" data-act="dm">×</button></div>':"")+
+  ""
+}
+function homeV(){
+  var cs=items("comps",S.player).slice().sort(function(a,b){return a.date<b.date?-1:1}),l=cs[cs.length-1],p=cs[cs.length-2],h="";
+  if(!l)h+='<div class="card dim">Aucune compétition pour '+S.player+'. Ajoute-en dans l\'onglet Compétitions.</div>';
+  else{
+    var dlt=p?l.sgTotal-p.sgTotal:null;
+    h+='<div class="card"><h2>SG total · '+esc(l.name)+" · "+fd(l.date)+'</h2><div style="font-size:48px;font-weight:800;font-variant-numeric:tabular-nums" class="'+sgc(l.sgTotal)+'">'+sg(l.sgTotal)+"</div>"+(dlt!=null?'<div class="'+sgc(dlt)+'" style="font-size:13px">'+sg(dlt)+" vs précédente</div>":"")+
+    '<div class="grid" style="margin-top:10px"><div class="stat"><span>GIR</span><b>'+fmt(l.gir,0)+'%</b></div><div class="stat"><span>FIR</span><b>'+fmt(l.fir,0)+'%</b></div><div class="stat"><span>Drive</span><b>'+fmt(l.drivingDistance,0)+' m</b></div></div></div>';
+    var r5=cs.slice(-5),cats=[["sgDepart","Départ"],["sgApproach","Approche"],["sgChipping","Petit jeu"],["sgPutting","Putting"]].map(function(c){return{l:c[1],v:avg(r5.map(function(x){return x[c[0]]}))}}).filter(function(c){return c.v!=null});
+    if(cats.length){var w=cats.slice().sort(function(a,b){return a.v-b.v})[0],mx=Math.max.apply(0,cats.map(function(c){return Math.abs(c.v)}))||1;
+      h+='<div class="card"><h2>Priorité d\'entraînement</h2><div style="font-size:13px;margin-bottom:8px">Sur les '+r5.length+' dernières compétitions, <b>'+w.l.toLowerCase()+"</b> est la catégorie qui coûte le plus de coups ("+sg(w.v)+").</div>"+
+      cats.map(function(c){return'<div style="display:flex;align-items:center;gap:8px;font-size:12.5px;margin:5px 0"><span style="width:70px">'+c.l+'</span><div style="flex:1"><div class="bar'+(c.v>=0?" p":"")+'" style="width:'+Math.max(3,Math.abs(c.v)/mx*100)+'%"></div></div><span class="'+sgc(c.v)+'" style="width:48px;text-align:right">'+sg(c.v)+"</span></div>"}).join("")+"</div>"}
+  }
+  var sp=items("speeds","all").filter(function(x){return x.player==S.player}).sort(function(a,b){return a.date<b.date?-1:1}),ls=sp[sp.length-1];
+  var ts_=items("tests","all").filter(function(x){return x.player==S.player}).sort(function(a,b){return a.date<b.date?1:-1}).slice(0,4);
+  h+='<div class="card"><h2>Derniers relevés</h2><div class="grid"><div class="stat"><span>Club speed max</span><b>'+(ls?fmt(ls.clubMax,1):"—")+'</b></div>'+ts_.map(function(t){return'<div class="stat"><span>'+esc((TESTS[t.type]||[t.type])[0])+" · "+fd(t.date)+"</span><b>"+fmt(t.score/t.max*100,0)+"%</b></div>"}).join("")+"</div></div>";
+  var nx=items("cal","all").filter(function(e){return e.e>=new Date().toISOString().slice(0,10)}).sort(function(a,b){return a.d<b.d?-1:1}).slice(0,3);
+  if(nx.length)h+='<div class="card"><h2>Prochains tournois</h2>'+nx.map(function(e){return'<div style="font-size:13px;padding:4px 0">'+fd(e.d)+" · <b>"+esc(e.n)+'</b> <span class="dim">'+esc(e.v||"")+" · "+esc(e.cat)+"</span></div>"}).join("")+"</div>";
+  return h
+}
+function compV(){
+  var cs=items("comps",S.player).slice().sort(function(a,b){return a.date<b.date?-1:1});
+  var h='<div class="card"><h2>Strokes gained · '+S.player+"</h2>"+chart([{name:"SG total",color:pc(S.player),pts:cs.map(function(c){return[ts(c.date),c.sgTotal]})}],{zero:1,d:1})+"</div>";
+  h+='<div class="card"><h2>Par catégorie</h2>'+chart([["sgDepart","Départ","#c9a227"],["sgApproach","Approche","#2f9bb5"],["sgChipping","Petit jeu","#8fb878"],["sgPutting","Putting","#c46fb0"]].map(function(c){return{name:c[1],color:c[2],pts:cs.map(function(x){return[ts(x.date),x[c[0]]]})}}),{zero:1,d:1})+"</div>";
+  h+='<div class="card"><h2>Ajouter une compétition</h2><form data-act="addcomp"><div class="g"><div><label>Tournoi</label><input name="name" required></div><div><label>Date</label><input type="date" name="date" required></div></div><div class="g">'+
+  [["sgTotal","SG total"],["sgDepart","SG départ"],["sgApproach","SG approche"],["sgChipping","SG petit jeu"],["sgPutting","SG putting"],["gir","GIR %"],["fir","FIR %"],["scrambling","Scrambling %"],["drivingDistance","Drive (m)"],["teeInPlay","Tee in play %"]].map(function(f){return'<div><label>'+f[1]+'</label><input name="'+f[0]+'" inputmode="decimal"></div>'}).join("")+'</div><button class="pri">Enregistrer</button></form></div>';
+  h+='<div class="card sc"><h2>Historique</h2><table><tr><th>Tournoi</th><th>Date</th><th>SG</th><th>Dép</th><th>App</th><th>PJ</th><th>Putt</th><th>GIR</th><th>FIR</th><th></th></tr>'+cs.slice().reverse().map(function(c){return"<tr><td>"+esc(c.name)+"</td><td>"+fd(c.date)+'</td><td class="'+sgc(c.sgTotal)+'"><b>'+sg(c.sgTotal)+"</b></td>"+["sgDepart","sgApproach","sgChipping","sgPutting"].map(function(k){return'<td class="'+sgc(c[k])+'">'+sg(c[k])+"</td>"}).join("")+"<td>"+fmt(c.gir,0)+"</td><td>"+fmt(c.fir,0)+'</td><td><button class="x" data-act="delcomp" data-v="'+c.id+'">✕</button></td></tr>'}).join("")+"</table></div>";
+  return h
+}
+function testsV(){
+  var all=items("tests","all").filter(function(x){return x.player==S.player}).sort(function(a,b){return a.date<b.date?-1:1});
+  var cols={putting:"#c46fb0",fers:"#2f9bb5",driver:"#c9a227",wedging:"#8fb878",autre:"#999"};
+  var h='<div class="card"><h2>Évolution (% du max) · '+S.player+"</h2>"+chart(Object.keys(TESTS).map(function(k){return{name:TESTS[k][0],color:cols[k],pts:all.filter(function(t){return t.type==k}).map(function(t){return[ts(t.date),t.score/t.max*100]})}}).filter(function(s){return s.pts.length}),{d:0})+"</div>";
+  h+='<div class="card"><h2>Nouveau test</h2><form data-act="addtest"><div class="g"><div><label>Test</label><select name="type">'+Object.keys(TESTS).map(function(k){return'<option value="'+k+'">'+TESTS[k][0]+" (/"+TESTS[k][1]+")</option>"}).join("")+'</select></div><div><label>Date</label><input type="date" name="date" required></div><div><label>Score</label><input name="score" inputmode="decimal" required></div><div><label>Sur (max)</label><input name="max" inputmode="decimal" placeholder="auto"></div></div><label>Note</label><input name="note" style="margin-bottom:8px"><button class="pri">Enregistrer</button></form><div class="dim" style="font-size:11.5px;margin-top:8px">Max automatique : putting 60, fers 120, driver 90, wedging 135. Saisis le total de la fiche.</div></div>';
+  h+='<div class="card sc"><h2>Historique</h2><table><tr><th>Date</th><th>Test</th><th>Score</th><th>%</th><th>Note</th><th></th></tr>'+all.slice().reverse().map(function(t){return"<tr><td>"+fd(t.date)+"</td><td>"+esc((TESTS[t.type]||[t.type])[0])+"</td><td>"+fmt(t.score,0)+"/"+t.max+"</td><td><b>"+fmt(t.score/t.max*100,0)+'%</b></td><td class="dim">'+esc(t.note||"")+'</td><td><button class="x" data-act="deltest" data-v="'+t.id+'">✕</button></td></tr>'}).join("")+"</table></div>";
+  return h
+}
+function speedV(){
+  var sp=items("speeds","all").filter(function(x){return x.player==S.player}).sort(function(a,b){return a.date<b.date?-1:1});
+  var h='<div class="card"><h2>Vitesse de club · '+S.player+"</h2>"+chart([{name:"Club max",color:pc(S.player),pts:sp.map(function(s){return[ts(s.date),s.clubMax]})},{name:"Club moy",color:"#999",pts:sp.map(function(s){return[ts(s.date),s.clubMoy]})}],{d:0})+"</div>";
+  h+='<div class="card"><h2>Nouvelle mesure</h2><form data-act="addspeed"><div class="g"><div><label>Date</label><input type="date" name="date" required></div><div><label>Club max</label><input name="clubMax" inputmode="decimal" required></div><div><label>Club moy</label><input name="clubMoy" inputmode="decimal"></div><div><label>Balle max</label><input name="ballMax" inputmode="decimal"></div><div><label>Balle moy</label><input name="ballMoy" inputmode="decimal"></div></div><button class="pri">Enregistrer</button></form></div>';
+  h+='<div class="card sc"><table><tr><th>Date</th><th>Club max</th><th>Club moy</th><th>Balle max</th><th>Balle moy</th><th></th></tr>'+sp.slice().reverse().map(function(s){return"<tr><td>"+fd(s.date)+"</td><td><b>"+fmt(s.clubMax)+"</b></td><td>"+fmt(s.clubMoy)+"</td><td>"+fmt(s.ballMax)+"</td><td>"+fmt(s.ballMoy)+'</td><td><button class="x" data-act="delspeed" data-v="'+s.id+'">✕</button></td></tr>'}).join("")+"</table></div>";
+  return h
+}
+function techV(){
+  var t=items("tech","all").filter(function(x){return x.player==S.player}).sort(function(a,b){return a.date<b.date?1:-1});
+  var h='<div class="card"><h2>Ajouter une séance / un retour</h2><form data-act="addtech"><div class="g"><div><label>Date</label><input type="date" name="date" required></div><div><label>Coach / source</label><input name="coach" placeholder="Mark Bull, moi…"></div></div><label>À retenir</label><textarea name="text" required style="margin-bottom:8px"></textarea><button class="pri">Enregistrer</button></form></div>';
+  h+=t.map(function(x){var li=function(a){return(a||[]).map(function(s){return"<li>"+esc(s)+"</li>"}).join("")};
+    return'<div class="card"><div style="display:flex;justify-content:space-between"><b>'+fd(x.date)+" · "+esc(x.coach||"")+'</b><button class="x" data-act="deltech" data-v="'+x.id+'">✕</button></div><div class="note">'+(x.text?esc(x.text):"")+(x.good&&x.good.length?"<h4>Points positifs</h4><ul>"+li(x.good)+"</ul>":"")+(x.work&&x.work.length?"<h4>À travailler</h4><ul>"+li(x.work)+"</ul>":"")+"</div></div>"}).join("")||'<div class="card dim">Rien pour '+S.player+".</div>";
+  return h
+}
+function vidV(){
+  var v=items("videos","all").filter(function(x){return x.player==S.player}).sort(function(a,b){return a.date<b.date?1:-1});
+  var h='<div class="card"><h2>Ajouter une vidéo · '+S.player+'</h2><form data-act="addvid"><div class="g"><div><label>Titre</label><input name="title" required></div><div><label>Date</label><input type="date" name="date"></div><div><label>Thème</label><select name="tag">'+["Swing","Putting","Petit jeu","Approche","Driver","Parcours","Autre"].map(function(t){return"<option>"+t+"</option>"}).join("")+'</select></div></div><label>Fichier vidéo ou photo (depuis la pellicule)</label><input type="file" name="file" accept="video/*,image/*" style="margin-bottom:8px"><label>…ou lien (YouTube, Drive…)</label><input name="link" style="margin-bottom:8px"><label>Commentaire</label><input name="note" style="margin-bottom:8px"><button class="pri"'+(assets?"":" disabled")+">"+(S.up?esc(S.up):"Ajouter")+"</button>"+(assets?"":'<div class="dim" style="font-size:12px;margin-top:6px">Envoi de fichiers réservé aux éditeurs : seul le lien est possible ici.</div>')+"</form></div>";
+  h+='<div class="vid">'+v.map(function(x){return'<div class="card" style="margin:0"><div style="display:flex;justify-content:space-between"><b style="font-size:14px">'+esc(x.title)+'</b><button class="x" data-act="delvid" data-v="'+x.id+'">✕</button></div>'+(x.assetId?(x.mime&&x.mime.indexOf("image")==0?'<img data-blob="'+esc(x.assetId)+'" style="border-radius:10px">':'<video controls playsinline preload="metadata" data-blob="'+esc(x.assetId)+'"></video>'):"")+(x.link?'<div style="margin:6px 0"><a href="'+esc(x.link)+'" target="_blank" rel="noopener">Ouvrir le lien ↗</a></div>':"")+'<div style="margin-top:6px"><span class="tag">'+esc(x.tag||"")+'</span><span class="dim" style="font-size:12px">'+fd(x.date)+"</span></div>"+(x.note?'<div style="font-size:12.5px;margin-top:4px">'+esc(x.note)+"</div>":"")+"</div>"}).join("")+"</div>"+(v.length?"":'<div class="card dim">Aucune vidéo pour '+S.player+".</div>");
+  return h
+}
+function calV(){
+  var ev=items("cal","all").filter(function(e){return S.calf=="all"||e.cat==S.calf}).sort(function(a,b){return a.d<b.d?-1:1}),mo={},h="";
+  ev.forEach(function(e){var k=e.d.slice(0,7);(mo[k]=mo[k]||[]).push(e)});
+  var MN=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+  h+='<div class="row" style="padding-top:0">'+[["all","Tous"],["U18","U18"],["U16","U16"]].map(function(f){return'<button class="tab'+(S.calf==f[0]?" on":"")+'" data-act="calf" data-v="'+f[0]+'">'+f[1]+"</button>"}).join("")+"</div>";
+  Object.keys(mo).forEach(function(k){h+='<div class="card"><h2>'+MN[+k.slice(5)-1]+" "+k.slice(0,4)+"</h2>"+mo[k].map(function(e){return'<div style="display:flex;gap:8px;align-items:baseline;padding:5px 0;border-top:1px solid var(--line);font-size:13px"><span class="dim" style="width:84px;flex:0 0 auto">'+fd(e.d).slice(0,5)+"→"+fd(e.e).slice(0,5)+'</span><span style="flex:1;min-width:0"><b>'+esc(e.n)+'</b><br><span class="dim">'+esc(e.v||"")+(e.c?" · "+esc(e.c):"")+'</span></span><span class="tag">'+esc(e.cat)+'</span><button class="x" data-act="delcal" data-v="'+e.id+'">✕</button></div>'}).join("")+"</div>"});
+  h+='<div class="card"><h2>Ajouter un tournoi</h2><form data-act="addcal"><div class="g"><div><label>Nom</label><input name="n" required></div><div><label>Lieu</label><input name="v"></div><div><label>Début</label><input type="date" name="d" required></div><div><label>Fin</label><input type="date" name="e"></div><div><label>Catégorie</label><select name="cat"><option>U18</option><option>U16</option><option>Autre</option></select></div></div><button class="pri">Ajouter</button></form></div>';
+  return h
+}
+function md(t){
+  var L=String(t||"").split("\n"),o="",tb=[];
+  function fl(){if(tb.length){o+='<div class="sc"><table>'+tb.filter(function(r){return!/^\|[\s:\-|]+\|?$/.test(r)}).map(function(r,i){return"<tr>"+r.replace(/^\||\|$/g,"").split("|").map(function(c){return"<"+(i?"td":"th")+' style="white-space:normal">'+esc(c.trim())+"</"+(i?"td":"th")+">"}).join("")+"</tr>"}).join("")+"</table></div>";tb=[]}}
+  L.forEach(function(l){
+    if(/^\s*\|/.test(l)){tb.push(l.trim());return}fl();
+    var m;if(m=l.match(/^(#{1,4})\s+(.*)/))o+="<h4>"+esc(m[2])+"</h4>";
+    else if(m=l.match(/^\s*[-*]\s+(.*)/))o+="<li>"+esc(m[1]).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>")+"</li>";
+    else o+=esc(l).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>")+"\n"});
+  fl();return o
+}
+function notesV(){
+  var ns=S.d.notes||{},ks=Object.keys(ns),h="";
+  if(S.note&&ns[S.note]){var n=ns[S.note];
+    return'<button class="ghost" data-act="nback">← Retour</button><div class="card"><h2>'+esc(n.title)+'</h2><div class="note">'+md(n.body)+'</div></div>'}
+  h+=ks.map(function(k){return'<div class="card" style="display:flex;justify-content:space-between;align-items:center"><b data-act="nopen" data-v="'+k+'" style="flex:1;cursor:pointer">'+esc(ns[k].title)+'</b><button class="x" data-act="delnote" data-v="'+k+'">✕</button></div>'}).join("")||'<div class="card dim">Aucune note.</div>';
+  h+='<div class="card"><h2>Nouvelle note</h2><form data-act="addnote"><label>Titre</label><input name="title" required style="margin-bottom:8px"><label>Texte</label><textarea name="body" required style="margin-bottom:8px"></textarea><button class="pri">Enregistrer</button></form></div>';
+  return h
+}
+function dataV(){
+  return'<div class="card"><h2>Sauvegarde</h2><p style="font-size:13px">Télécharge les données dans un fichier (les vidéos restent sur l\'appareil, elles ne sont pas incluses).</p><button class="pri" data-act="export">Exporter la sauvegarde</button></div>'+
+  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp" accept="application/json,.json"></div>'
+}
+function render(){
+  var a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.closest("form")&&!pending){pending=true;return}
+  pending=false;
+  var v={home:homeV,comp:compV,tests:testsV,speed:speedV,tech:techV,vid:vidV,cal:calV,notes:notesV,data:dataV}[S.tab]();
+  $("#app").innerHTML=hdr()+v;hydrate();
+}
+document.addEventListener("focusout",function(){if(pending)setTimeout(render,150)});
+function fdata(f){var o={};new FormData(f).forEach(function(v,k){o[k]=v});return o}
+function iso8(d){var p=d.split("/");return p.length==3?p[2]+"-"+p[1]+"-"+p[0]:d}
+var A={
+pl:function(e){S.player=e.v;S.note=null},tab:function(e){S.tab=e.v;S.note=null},dm:function(){S.msg=null},calf:function(e){S.calf=e.v},
+nopen:function(e){S.note=e.v},nback:function(){S.note=null},
+delcomp:function(e){save("comps",S.player,items("comps",S.player).filter(function(x){return x.id!=e.v}));return 1},
+deltest:function(e){save("tests","all",items("tests","all").filter(function(x){return x.id!=e.v}));return 1},
+delspeed:function(e){save("speeds","all",items("speeds","all").filter(function(x){return x.id!=e.v}));return 1},
+deltech:function(e){save("tech","all",items("tech","all").filter(function(x){return x.id!=e.v}));return 1},
+delvid:function(e){items("videos","all").forEach(function(x){if(x.id==e.v&&x.assetId)blobDel(x.assetId)});save("videos","all",items("videos","all").filter(function(x){return x.id!=e.v}));return 1},
+delcal:function(e){save("cal","all",items("cal","all").filter(function(x){return x.id!=e.v}));return 1},
+delnote:function(e){idbDel("notes/"+e.v);delete S.d.notes[e.v]},
+export:function(){exportAll();return 1}
+};
+var CONF=null;
+document.addEventListener("click",function(ev){var t=ev.target.closest("[data-act]");if(!t||t.tagName=="FORM")return;var act=t.getAttribute("data-act");if(!A[act])return;
+  if(/^del/.test(act)){if(CONF!=act+t.getAttribute("data-v")){CONF=act+t.getAttribute("data-v");t.textContent="Sûr ?";t.style.color="var(--bad)";setTimeout(function(){CONF=null;render()},3000);return}CONF=null}
+  var r=A[act]({v:t.getAttribute("data-v")});if(!r)render()});
+document.addEventListener("submit",function(ev){
+  var f=ev.target,act=f.getAttribute("data-act");if(!act)return;ev.preventDefault();var d=fdata(f),P=S.player;
+  if(act=="addcomp"){var o={id:uid(),name:d.name,date:d.date};["sgTotal","sgDepart","sgApproach","sgChipping","sgPutting","gir","fir","scrambling","drivingDistance","teeInPlay"].forEach(function(k){o[k]=num(d[k])});save("comps",P,items("comps",P).concat([o]))}
+  if(act=="addtest"){var mx=num(d.max)||TESTS[d.type][1],sc=num(d.score);if(sc==null)return;save("tests","all",items("tests","all").concat([{id:uid(),player:P,date:d.date,type:d.type,score:sc,max:mx,note:d.note}]))}
+  if(act=="addspeed")save("speeds","all",items("speeds","all").concat([{id:uid(),player:P,date:d.date,clubMax:num(d.clubMax),clubMoy:num(d.clubMoy),ballMax:num(d.ballMax),ballMoy:num(d.ballMoy)}]));
+  if(act=="addtech")save("tech","all",items("tech","all").concat([{id:uid(),player:P,date:d.date,coach:d.coach,text:d.text}]));
+  if(act=="addcal")save("cal","all",items("cal","all").concat([{id:uid(),n:d.n,v:d.v,d:d.d,e:d.e||d.d,cat:d.cat}]));
+  if(act=="addnote"){var id="n"+uid();S.d.notes=S.d.notes||{};S.d.notes[id]={title:d.title,body:d.body};idbSet("notes/"+id,{title:d.title,body:d.body});render()}
+  if(act=="addvid"){
+    var file=f.querySelector('input[type=file]').files[0];
+    var rec={id:uid(),player:P,title:d.title,date:d.date||new Date().toISOString().slice(0,10),tag:d.tag,note:d.note,link:d.link};
+    if(!file&&!d.link){S.msg="Choisis un fichier ou colle un lien.";render();return}
+    
+    if(file){S.up="Enregistrement…";render();var bid="b"+uid();blobPut(bid,file).then(function(){rec.assetId=bid;rec.mime=file.type;S.up=null;return save("videos","all",items("videos","all").concat([rec]))}).catch(function(e){S.up=null;S.msg="Échec de l'enregistrement de la vidéo (stockage plein ?).";render()});return}
+    save("videos","all",items("videos","all").concat([rec]))}
+  f.reset();
+});
+document.addEventListener("change",function(ev){if(ev.target.id!="imp")return;var f=ev.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(){try{importAll(JSON.parse(r.result))}catch(e){S.msg="Fichier invalide.";render()}};r.readAsText(f)});
+function merge(col,id,add,key){var cur=items(col,id),seen={};cur.forEach(function(x){seen[key(x)]=1});var n=0;add.forEach(function(x){if(!seen[key(x)]){cur=cur.concat([x]);n++}});if(n)save(col,id,cur);return n}
+function importAll(j){var n=0;
+  if(j.competitions&&!Array.isArray(j.competitions))PL.forEach(function(p){var a=(j.competitions[p]||[]).map(function(c){return Object.assign({},c,{id:c.id||uid(),date:iso8(c.date)})});n+=merge("comps",p,a,function(x){return x.name+x.date})});
+  if(Array.isArray(j.speeds))n+=merge("speeds","all",j.speeds.map(function(s){return Object.assign({},s,{id:s.id||uid(),date:iso8(s.date)})}),function(x){return x.player+x.date});
+  var ap=j.app||{};
+  Object.keys(ap).forEach(function(c){var docs=ap[c]||{};Object.keys(docs).forEach(function(id){var d=docs[id]||{};
+    if(c=="notes"){if(!(S.d.notes&&S.d.notes[id])){S.d.notes=S.d.notes||{};S.d.notes[id]=d;idbSet("notes/"+id,d);n++}}
+    else if(d.items)n+=merge(c,id,d.items,function(x){return c=="comps"?x.name+x.date:c=="speeds"?x.player+x.date:x.id})})});
+  S.msg=n+" élément(s) importé(s).";render()}
+function exportAll(){
+  var app={};Object.keys(S.d).forEach(function(c){app[c]=S.d[c]});
+  var comps={};PL.forEach(function(p){comps[p]=items("comps",p)});
+  var payload=JSON.stringify({exportedAt:new Date().toISOString(),app:app,comps:{Matteo:{items:comps.Matteo},Xander:{items:comps.Xander},Sunil:{items:comps.Sunil},Davon:{items:comps.Davon}}},null,1);
+  var b=new Blob([payload],{type:"application/json"}),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download="sauvegarde-golf-"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(a);a.click();setTimeout(function(){a.remove();URL.revokeObjectURL(u)},4000);S.msg="Sauvegarde générée (données, sans les vidéos).";render()}
+render();
+idbAll().then(function(rows){Object.keys(rows).forEach(function(k){var p=k.split("/");S.d[p[0]]=S.d[p[0]]||{};S.d[p[0]][p[1]]=rows[k]});render();
+  if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){})}).catch(function(){S.msg="Stockage indisponible (navigation privée ?). Rien ne sera enregistré.";render()});
+if("serviceWorker" in navigator)window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})});
+})();
+</script>
+</body></html>
