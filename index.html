@@ -66,7 +66,7 @@ a{color:var(--accent)}
 <script>
 (function(){
 var PL=["Matteo","Xander","Sunil","Davon"];
-var TABS=[["home","Accueil"],["comp","Compétitions"],["tests","Tests"],["speed","Vitesse"],["forme","Forme & concentration"],["tech","Technique"],["vid","Vidéos"],["cal","Calendrier"],["notes","Notes"],["data","Données"]];
+var TABS=[["home","Accueil"],["comp","Compétitions"],["tests","Tests"],["speed","Vitesse"],["tech","Technique"],["vid","Vidéos"],["cal","Calendrier"],["notes","Notes"],["data","Données"]];
 var TESTS={putting:["Putting",60],fers:["Fers",120],driver:["Driver",90],wedging:["Wedging",135],autre:["Autre",100]};
 var S={player:"Matteo",tab:"home",d:{},ready:{},msg:null,calf:"all",note:null,up:null,cmp:[],vtag:"",vadd:false,wk:null};
 var MN2=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"],TG=["Swing","Putting","Petit jeu","Approche","Driver","Parcours","Autre"];
@@ -265,7 +265,7 @@ function notesV(){
 }
 function dataV(){
   return'<div class="card"><h2>Sauvegarde</h2><p style="font-size:13px">Télécharge les données dans un fichier (les vidéos restent sur l\'appareil, elles ne sont pas incluses).</p><button class="pri" data-act="export">Exporter la sauvegarde</button></div>'+
-  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 7</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
+  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 8</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
 }
 function render(){
   var a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.closest("form")&&!pending){pending=true;return}
