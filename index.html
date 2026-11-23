@@ -56,15 +56,19 @@ svg text{fill:var(--dim);font-size:10px}
 .bar{height:8px;border-radius:4px;background:var(--bad)}
 .bar.p{background:var(--good)}
 a{color:var(--accent)}
+.rb{width:40px;height:40px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--dim);font-size:15px;font-weight:700;padding:0}
+.rb.on{background:var(--gold);border-color:var(--gold);color:#fff}
+.rrow{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:8px 0;flex-wrap:wrap}
+.rrow small{display:block;color:var(--dim);font-size:11px}
 </style>
 </head><body>
 <div id="app"></div>
 <script>
 (function(){
 var PL=["Matteo","Xander","Sunil","Davon"];
-var TABS=[["home","Accueil"],["comp","Compétitions"],["tests","Tests"],["speed","Vitesse"],["tech","Technique"],["vid","Vidéos"],["cal","Calendrier"],["notes","Notes"],["data","Données"]];
+var TABS=[["home","Accueil"],["comp","Compétitions"],["tests","Tests"],["speed","Vitesse"],["forme","Forme & concentration"],["tech","Technique"],["vid","Vidéos"],["cal","Calendrier"],["notes","Notes"],["data","Données"]];
 var TESTS={putting:["Putting",60],fers:["Fers",120],driver:["Driver",90],wedging:["Wedging",135],autre:["Autre",100]};
-var S={player:"Matteo",tab:"home",d:{},ready:{},msg:null,calf:"all",note:null,up:null,cmp:[],vtag:"",vadd:false};
+var S={player:"Matteo",tab:"home",d:{},ready:{},msg:null,calf:"all",note:null,up:null,cmp:[],vtag:"",vadd:false,wk:null};
 var MN2=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"],TG=["Swing","Putting","Petit jeu","Approche","Driver","Parcours","Autre"];
 var db=true,assets=true,dl=true,pending=false;
 
@@ -202,6 +206,36 @@ function vidV(){
   if(!v.length)h+='<div class="card dim">Aucune vidéo pour '+S.player+(S.vtag?" dans « "+S.vtag+" »":"")+".</div>";
   return h
 }
+function addDays(iso,n){var d=new Date(iso+"T12:00:00");d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)}
+function todayIso(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function mondayOf(iso){var d=new Date(iso+"T12:00:00");return addDays(iso,-((d.getDay()+6)%7))}
+var FRM=[["energy","Énergie","1 = vidé · 5 = en pleine forme"],["fatigue","Fatigue musculaire / courbatures","1 = aucune · 5 = très fatigué"],["mood","Humeur","1 = bas · 5 = très bon"]];
+var CON=[["focus","Concentration à l'entraînement","1 = dispersé · 5 = très concentré"],["routine","Routine avant-coup respectée","1 = jamais · 5 = à chaque coup"]];
+var DJ=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
+function setField(date,key,val,wk){
+  var P=S.player,id=wk?P+"|wk|"+date:P+"|"+date,list=items("forme",P).slice(),ix=-1;
+  list.forEach(function(x,i){if(x.id==id)ix=i});
+  var o=ix>=0?Object.assign({},list[ix]):{id:id,player:P,date:date};if(wk)o.wk=true;
+  if(val===""||val==null)delete o[key];else o[key]=val;
+  if(ix>=0)list[ix]=o;else list.push(o);save("forme",P,list)}
+function formeV(){
+  var P=S.player,L=items("forme",P),thisWk=mondayOf(todayIso());if(!S.wk)S.wk=thisWk;var wk=S.wk,days=[0,1,2,3,4,5,6].map(function(i){return addDays(wk,i)});
+  var E=function(d){return L.filter(function(x){return x.id==P+"|"+d})[0]||{}};
+  var goal=(L.filter(function(x){return x.id==P+"|wk|"+wk})[0]||{}).goal||"";
+  var h='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><button class="ghost" data-act="wkprev">◀</button><b style="font-size:13px;text-align:center">'+P+" · semaine du "+fd(wk).slice(0,5)+" au "+fd(days[6]).slice(0,5)+'</b><button class="ghost" data-act="wknext">▶</button></div>'+(wk!=thisWk?'<div style="text-align:center;margin-top:8px"><button class="ghost" data-act="wknow">Revenir à cette semaine</button></div>':"")+"</div>";
+  h+='<div class="card"><h2>Objectif de concentration de la semaine</h2><input data-f="'+wk+'|goal|wk" value="'+esc(goal)+'" placeholder="ex : faire ma routine avant chaque coup, même quand je suis fatigué"></div>';
+  var es=days.map(E),A=function(k){return avg(es.map(function(e){return e[k]}))};
+  h+='<div class="card"><h2>Bilan de la semaine</h2><div class="grid">'+[["sleep","Sommeil (h)",1],["energy","Énergie",1],["fatigue","Fatigue",1],["mood","Humeur",1],["focus","Concentration",1],["routine","Routine",1]].map(function(m){var v=A(m[0]);return'<div class="stat"><span>'+m[1]+"</span><b>"+fmt(v,1)+"</b></div>"}).join("")+"</div></div>";
+  days.forEach(function(d,i){
+    var e=E(d),isT=d==todayIso();
+    h+='<div class="card"'+(isT?' style="border-color:var(--gold)"':"")+'><div style="display:flex;justify-content:space-between"><b>'+DJ[i]+" "+fd(d).slice(0,5)+"</b>"+(isT?'<span class="tag">aujourd\'hui</span>':"")+"</div>";
+    h+='<h3 style="margin-top:10px">Forme</h3><div class="rrow"><div>Sommeil<small>heures cette nuit</small></div><input data-f="'+d+'|sleep" inputmode="decimal" value="'+esc(e.sleep==null?"":e.sleep)+'" style="width:80px" placeholder="7,5"></div>';
+    var rt=function(m){return'<div class="rrow"><div>'+m[1]+"<small>"+m[2]+'</small></div><div style="display:flex;gap:6px">'+[1,2,3,4,5].map(function(n){return'<button class="rb'+(e[m[0]]==n?" on":"")+'" data-act="rate" data-v="'+d+"|"+m[0]+"|"+n+'">'+n+"</button>"}).join("")+"</div></div>"};
+    h+=FRM.map(rt).join("")+'<h3>Concentration</h3>'+CON.map(rt).join("")+'<div style="margin-top:6px"><label>Ce qui m\'a distrait (facultatif)</label><input data-f="'+d+'|distract" value="'+esc(e.distract||"")+'" placeholder="bruit, score, groupe, pensée sur le swing…"></div><div style="margin-top:6px"><label>Note</label><input data-f="'+d+'|note" value="'+esc(e.note||"")+'"></div></div>'});
+  var cut=addDays(todayIso(),-28),rec=L.filter(function(x){return!x.wk&&x.date>=cut}).sort(function(a,b){return a.date<b.date?-1:1});
+  h+='<div class="card"><h2>28 derniers jours</h2>'+chart([{name:"Concentration",color:"#c9a227",pts:rec.map(function(x){return[ts(x.date),x.focus]})},{name:"Énergie",color:"#2f9bb5",pts:rec.map(function(x){return[ts(x.date),x.energy]})}],{d:0,h:170})+"</div>";
+  return h
+}
 function calV(){
   var ev=items("cal","all").filter(function(e){return S.calf=="all"||e.cat==S.calf}).sort(function(a,b){return a.d<b.d?-1:1}),mo={},h="";
   ev.forEach(function(e){var k=e.d.slice(0,7);(mo[k]=mo[k]||[]).push(e)});
@@ -231,12 +265,12 @@ function notesV(){
 }
 function dataV(){
   return'<div class="card"><h2>Sauvegarde</h2><p style="font-size:13px">Télécharge les données dans un fichier (les vidéos restent sur l\'appareil, elles ne sont pas incluses).</p><button class="pri" data-act="export">Exporter la sauvegarde</button></div>'+
-  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 6</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
+  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 7</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
 }
 function render(){
   var a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.closest("form")&&!pending){pending=true;return}
   pending=false;
-  var v={home:homeV,comp:compV,tests:testsV,speed:speedV,tech:techV,vid:vidV,cal:calV,notes:notesV,data:dataV}[S.tab]();
+  var v={home:homeV,comp:compV,tests:testsV,speed:speedV,forme:formeV,tech:techV,vid:vidV,cal:calV,notes:notesV,data:dataV}[S.tab]();
   $("#app").innerHTML=hdr()+v;hydrate();
 }
 document.addEventListener("focusout",function(){if(pending)setTimeout(render,150)});
@@ -253,6 +287,8 @@ delvid:function(e){items("videos","all").forEach(function(x){if(x.id==e.v&&x.ass
 delcal:function(e){save("cal","all",items("cal","all").filter(function(x){return x.id!=e.v}));return 1},
 delnote:function(e){idbDel("notes/"+e.v);delete S.d.notes[e.v]},
 export:function(){exportAll();return 1},
+wkprev:function(){S.wk=addDays(S.wk,-7)},wknext:function(){S.wk=addDays(S.wk,7)},wknow:function(){S.wk=mondayOf(todayIso())},
+rate:function(e){var p=e.v.split("|"),cur=((items("forme",S.player).filter(function(x){return x.id==S.player+"|"+p[0]})[0])||{})[p[1]];setField(p[0],p[1],cur==+p[2]?null:+p[2]);return 1},
 vadd:function(){S.vadd=!S.vadd},vtag:function(e){S.vtag=e.v||""},
 cmp:function(e){var i=S.cmp.indexOf(e.v);if(i>=0)S.cmp.splice(i,1);else{S.cmp.push(e.v);if(S.cmp.length>2)S.cmp.shift()}},
 cmpclear:function(){S.cmp=[]},
@@ -291,6 +327,9 @@ document.addEventListener("change",function(ev){if(ev.target.id!="imp")return;va
   S.msg="Lecture de « "+f.name+" » ("+Math.round(f.size/1024)+" ko)…";render();
   var r=new FileReader();r.onload=function(){tryImport(String(r.result||""))};r.onerror=function(){S.msg="Impossible de lire ce fichier. Essaie l'import par copier-coller plus bas.";render()};r.readAsText(f)});
 function tryImport(t){try{t=t.replace(/^\uFEFF/,"").trim();if(!t){S.msg="Le fichier est vide.";render();return}var a=t.indexOf('{"app"');if(a<0)a=t.indexOf("{");var z=t.lastIndexOf("}");if(a<0||z<a)throw new Error("pas de données reconnues");importAll(JSON.parse(t.slice(a,z+1)))}catch(e){S.msg="Contenu illisible ("+String(e&&e.message||e).slice(0,70)+"). Essaie l'import par copier-coller plus bas.";render()}}
+document.addEventListener("change",function(ev){var f=ev.target.getAttribute&&ev.target.getAttribute("data-f");if(!f)return;var p=f.split("|"),v=ev.target.value.trim();
+  if(p[1]=="sleep"){v=v===""?null:num(v);if(v!=null&&(v<0||v>16)){S.msg="Sommeil : valeur entre 0 et 16 h.";render();return}}
+  setField(p[0],p[1],v,p[2]=="wk")});
 function merge(col,id,add,key){var cur=items(col,id),seen={};cur.forEach(function(x){seen[key(x)]=1});var n=0;add.forEach(function(x){if(!seen[key(x)]){cur=cur.concat([x]);n++}});if(n)save(col,id,cur);return n}
 function importAll(j){var n=0;
   if(j.competitions&&!Array.isArray(j.competitions))PL.forEach(function(p){var a=(j.competitions[p]||[]).map(function(c){return Object.assign({},c,{id:c.id||uid(),date:iso8(c.date)})});n+=merge("comps",p,a,function(x){return x.name+x.date})});
