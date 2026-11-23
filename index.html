@@ -21,6 +21,7 @@ body{background:var(--bg);color:var(--fg);font-family:-apple-system,system-ui,"H
 h1{font-size:26px;margin:6px 0 2px;letter-spacing:-.02em}
 h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin:0 0 10px}
 h3{font-size:15px;margin:14px 0 6px}
+.syn{font:inherit;font-size:10.5px;letter-spacing:.04em;text-transform:none;border:1px solid var(--line);background:var(--card);color:var(--dim);border-radius:99px;padding:2px 9px;margin-left:6px;cursor:pointer}.syn.ok{color:var(--good);border-color:var(--good)}.syn.err{color:var(--bad);border-color:var(--bad)}.syn.sync{color:var(--gold)}
 .sub{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
 .row{display:flex;gap:8px;overflow-x:auto;padding:10px 0 4px;-webkit-overflow-scrolling:touch}
 .chip{flex:0 0 auto;padding:8px 16px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--dim);font-size:14px;font-weight:600}
@@ -112,9 +113,101 @@ function num(v){if(v===""||v==null)return null;var x=parseFloat(String(v).replac
 function sgc(v){return v==null?"dim":v>=0?"pos":"neg"}
 function sg(v){return v==null?"—":(v>0?"+":"")+fmt(v,2)}
 function avg(a){a=a.filter(function(x){return x!=null});return a.length?a.reduce(function(s,x){return s+x},0)/a.length:null}
+/* ===== SYNCHRO GitHub (coffre privé) ===== */
+var SY={owner:"marindharcourt",repo:"suivi-perf-data.",skip:{avatars:1,videos:1,meta:1,cal:1},st:"off",at:null,err:null,busy:false,again:false,t:null,tries:0};
+function tok(){try{return localStorage.getItem("gp_tok")||""}catch(e){return""}}
+function lget(k,d){try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}}
+function lset(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+var SNAP={};
+function ih(x){var o=Object.assign({},x);delete o._m;return JSON.stringify(o)}
+function snapDoc(col,id){var m={};items(col,id).forEach(function(x){if(x&&x.id)m[x.id]=ih(x)});SNAP[col+"/"+id]=m}
+function markDirty(name){var d=lget("gp_dirty",{});d[name]=1;lset("gp_dirty",d)}
+function stampList(col,id,list){
+  var key=col+"/"+id,sn=SNAP[key]||{},now=Date.now(),cur=S.d[col]&&S.d[col][id],del=Object.assign({},cur&&cur.del),seen={};
+  list=list.map(function(x){if(!x.id)x.id=uid();seen[x.id]=1;if(sn[x.id]!==ih(x)||x._m==null)x=Object.assign({},x,{_m:now});delete del[x.id];return x});
+  Object.keys(sn).forEach(function(i){if(!seen[i])del[i]=now});
+  var m={};list.forEach(function(x){m[x.id]=ih(x)});SNAP[key]=m;
+  return{items:list,del:del}}
+function ser(d){var o=d.del||{};return'{"items":[\n'+(d.items||[]).map(function(x){return JSON.stringify(x)}).join(",\n")+'\n],"del":'+JSON.stringify(o)+"}\n"}
+function mergeDoc(L,R){
+  var del={},ids=[],by={};
+  [R.del,L.del].forEach(function(o){Object.keys(o||{}).forEach(function(k){del[k]=Math.max(del[k]||0,o[k]||0)})});
+  (L.items||[]).forEach(function(x){by[x.id]=x;ids.push(x.id)});
+  (R.items||[]).forEach(function(x){var l=by[x.id];if(!l){by[x.id]=x;ids.push(x.id)}else if((x._m||0)>(l._m||0))by[x.id]=x});
+  var out=[];ids.forEach(function(i){var x=by[i];if(del[i]&&del[i]>(x._m||0))return;delete del[i];out.push(x)});
+  return{items:out,del:del}}
+function notesDoc(){var ns=S.d.notes||{},t=(S.d.meta&&S.d.meta.tomb&&S.d.meta.tomb.notes)||{};return{items:Object.keys(ns).map(function(k){return{id:k,title:ns[k].title,body:ns[k].body,_m:ns[k]._m||0}}),del:t}}
+function b64(s){return btoa(unescape(encodeURIComponent(s)))}
+function gh(path,opt){opt=opt||{};opt.headers=Object.assign({"Authorization":"Bearer "+tok(),"Accept":"application/vnd.github+json"},opt.headers);return fetch("https://api.github.com/repos/"+SY.owner+"/"+SY.repo+path,opt)}
+function syncSoon(){if(!tok())return;clearTimeout(SY.t);SY.t=setTimeout(syncNow,2500)}
+async function syncNow(){
+  if(!tok()){SY.st="off";render();return}
+  if(SY.busy){SY.again=true;return}
+  if(!S.ready.loaded)return;
+  SY.busy=true;SY.st="sync";SY.err=null;render();
+  try{
+    var shas=lget("gp_sha",{}),dirty=lget("gp_dirty",{}),names={},local={},changed=false;
+    Object.keys(S.d).forEach(function(c){if(SY.skip[c]||c=="notes")return;Object.keys(S.d[c]).forEach(function(id){var d=S.d[c][id];if(d&&Array.isArray(d.items)){local[c+"__"+id+".json"]={c:c,id:id,doc:{items:d.items,del:d.del||{}}}}})});
+    local["notes__all.json"]={c:"notes",id:"all",doc:notesDoc()};
+    var r=await gh("/contents/data");
+    if(r.status==401)throw{k:"auth"};
+    if(r.status==403||(r.status==404&&0))throw{k:"perm"};
+    var rem={};
+    if(r.status==200){(await r.json()).forEach(function(f){if(/\.json$/.test(f.name))rem[f.name]={sha:f.sha}})}
+    else if(r.status!=404)throw{k:"http",s:r.status};
+    Object.keys(local).concat(Object.keys(rem)).forEach(function(n){names[n]=1});
+    for(var n in names){
+      var parts=n.replace(/\.json$/,"").split("__"),c=parts[0],id=parts.slice(1).join("__");
+      if(SY.skip[c]||!c||!id)continue;
+      var L=local[n]?local[n].doc:{items:[],del:{}},R={items:[],del:{}},rtxt=null,rsha=rem[n]&&rem[n].sha;
+      if(rsha&&(rsha!==shas[n]||!local[n])){
+        var g=await gh("/contents/data/"+encodeURIComponent(n),{headers:{"Accept":"application/vnd.github.raw+json"}});
+        if(g.status==401)throw{k:"auth"};if(!g.ok)throw{k:"http",s:g.status};
+        rtxt=await g.text();try{R=JSON.parse(rtxt)}catch(e){throw{k:"json",n:n}}
+        R.items=(R.items||[]).filter(function(x){return x&&x.id});rtxt=ser(R)
+      }else if(rsha){R=null}
+      var M;
+      if(R===null){M=L;if(!dirty[n])continue}else M=mergeDoc(L,R);
+      var mtxt=ser(M);
+      if(R!==null&&mtxt!==ser(L)){ /* écrire en local */
+        if(c=="notes"){var nn={},tb={};M.items.forEach(function(x){nn[x.id]={title:x.title,body:x.body,_m:x._m}});
+          Object.keys(S.d.notes||{}).forEach(function(k){if(!nn[k])idbDel("notes/"+k)});
+          S.d.notes=nn;Object.keys(nn).forEach(function(k){idbSet("notes/"+k,nn[k])});
+          S.d.meta=S.d.meta||{};S.d.meta.tomb={notes:M.del};idbSet("meta/tomb",S.d.meta.tomb);
+        }else{S.d[c]=S.d[c]||{};S.d[c][id]={items:M.items,del:M.del};idbSet(c+"/"+id,S.d[c][id]);snapDoc(c,id)}
+        changed=true}
+      if(R!==null&&mtxt===rtxt){shas[n]=rsha;delete dirty[n];continue}
+      if(R===null&&!M.items.length&&!Object.keys(M.del).length){delete dirty[n];continue}
+      if(R!==null&&!rsha&&!M.items.length&&!Object.keys(M.del).length)continue;
+      var body={message:"Synchro "+new Date().toISOString().slice(0,16).replace("T"," ")+" · "+n,content:b64(mtxt)};if(rsha)body.sha=shas[n]&&R===null?shas[n]:rsha;
+      var p=await gh("/contents/data/"+encodeURIComponent(n),{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+      if(p.status==409||p.status==422){SY.again=true;continue}
+      if(p.status==401)throw{k:"auth"};if(p.status==403||p.status==404)throw{k:"perm"};if(!p.ok)throw{k:"http",s:p.status};
+      shas[n]=(await p.json()).content.sha;delete dirty[n]
+    }
+    lset("gp_sha",shas);lset("gp_dirty",dirty);
+    SY.st="ok";SY.at=new Date();SY.tries=0;
+  }catch(e){
+    SY.st=(!navigator.onLine||e instanceof TypeError)?"offline":"err";
+    SY.err=e&&e.k=="auth"?"Clé refusée (expirée ou mal copiée).":e&&e.k=="perm"?"Accès refusé : la clé n'a pas le droit sur le dépôt de données.":e&&e.k=="json"?"Fichier illisible dans le coffre : "+e.n:e&&e.k=="http"?"Erreur GitHub ("+e.s+").":SY.st=="offline"?"Pas de réseau : les modifications partiront au retour de la connexion.":"Synchro impossible.";
+  }
+  SY.busy=false;render();
+  if(SY.again&&SY.st=="ok"&&SY.tries<3){SY.again=false;SY.tries++;setTimeout(syncNow,800)}else SY.again=false
+}
+function synChip(){
+  var m={off:["Non synchronisé","off"],sync:["Synchronisation…","sync"],ok:["Synchronisé ✓","ok"],offline:["Hors ligne","err"],err:["Synchro en erreur","err"]}[SY.st]||["","off"];
+  return'<button class="syn '+m[1]+'" data-act="sync">☁ '+m[0]+"</button>"}
+function synCard(){
+  var has=!!tok(),h='<div class="card"><h2>Synchronisation</h2>';
+  h+='<p style="font-size:13px">'+(has?"Tes données sont copiées dans ton coffre privé GitHub et partagées entre tes appareils. Les vidéos et les photos de profil restent sur l'appareil.":"Colle ta clé d'accès GitHub pour activer la synchronisation.")+"</p>";
+  if(has){h+='<p style="font-size:13px"><b>'+({ok:"À jour",sync:"En cours…",offline:"Hors ligne",err:"Erreur",off:""}[SY.st]||"")+"</b>"+(SY.at?" · dernière synchro "+String(SY.at.getHours()).padStart(2,"0")+":"+String(SY.at.getMinutes()).padStart(2,"0"):"")+"</p>";
+    if(SY.err)h+='<p style="font-size:13px;color:var(--bad)">'+esc(SY.err)+"</p>";
+    h+='<button class="pri" data-act="sync">Synchroniser maintenant</button> <button data-act="rmtok" style="padding:9px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--dim)">Retirer la clé</button>'}
+  else h+='<input type="password" id="tokbox" placeholder="github_pat_…" autocomplete="off" autocapitalize="off" style="margin-bottom:8px"><button class="pri" data-act="savetok">Enregistrer la clé et synchroniser</button>';
+  return h+"</div>"}
 function save(col,id,list){
-  S.d[col]=S.d[col]||{};S.d[col][id]={items:list};render();
-  return idbSet(col+"/"+id,{items:list}).catch(function(){S.msg="Échec de l'enregistrement sur l'appareil.";render()})
+  var dd=stampList(col,id,list);S.d[col]=S.d[col]||{};S.d[col][id]=dd;markDirty(col+"__"+id+".json");render();syncSoon();
+  return idbSet(col+"/"+id,dd).catch(function(){S.msg="Échec de l'enregistrement sur l'appareil.";render()})
 }
 function chart(series,o){
   o=o||{};var W=640,H=o.h||190,pl=34,pr=8,pt=10,pb=22,pts=[];
@@ -141,7 +234,7 @@ var SEC=[["tests","Tests"],["speed","Vitesse"],["tech","Technique"],["notes","No
 function avatarH(p,big){var a=items("avatars",p)[0],c=big?"av big":"av";return a&&a.assetId?'<img class="'+c+'" alt="" data-blob="'+esc(a.assetId)+'" style="--pc:'+pc(p)+'">':'<span class="'+c+'" style="--pc:'+pc(p)+'">'+p[0]+"</span>"}
 function hdr(){
   var sec=SEC.filter(function(t){return t[0]==S.tab})[0],cur=sec?"more":S.tab;
-  return'<div class="sub">Pôle Performance FFGolf</div><h1>'+(sec?sec[1]:S.tab=="more"?"Plus":"Suivi Perf")+"</h1>"+
+  return'<div class="sub">Pôle Performance FFGolf '+synChip()+'</div><h1>'+(sec?sec[1]:S.tab=="more"?"Plus":"Suivi Perf")+"</h1>"+
   (sec?'<button class="back" data-act="tab" data-v="more">‹ Plus</button>':"")+
   '<div class="row">'+PL.map(function(p){return'<button class="pl'+(S.player==p?" on":"")+'" style="--pc:'+pc(p)+'" data-act="pl" data-v="'+p+'">'+avatarH(p)+p+"</button>"}).join("")+"</div>"+
   (S.msg?'<div class="msg">'+esc(S.msg)+' <button class="x" data-act="dm">×</button></div>':"")
@@ -333,8 +426,8 @@ function notesV(){
   return h
 }
 function dataV(){
-  return'<div class="card"><h2>Sauvegarde</h2><p style="font-size:13px">Télécharge les données dans un fichier (les vidéos restent sur l\'appareil, elles ne sont pas incluses).</p><button class="pri" data-act="export">Exporter la sauvegarde</button></div>'+
-  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Calendriers 2027</h2><p style="font-size:13px">Charge les calendriers prévisionnels 2027 des 4 joueurs dans l\'onglet Calendrier (sans doublon si tu le refais).</p><button class="pri" data-act="loadcal">Charger les calendriers 2027</button></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 22</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
+  return synCard()+'<div class="card"><h2>Sauvegarde</h2><p style="font-size:13px">Télécharge les données dans un fichier (les vidéos restent sur l\'appareil, elles ne sont pas incluses).</p><button class="pri" data-act="export">Exporter la sauvegarde</button></div>'+
+  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Calendriers 2027</h2><p style="font-size:13px">Charge les calendriers prévisionnels 2027 des 4 joueurs dans l\'onglet Calendrier (sans doublon si tu le refais).</p><button class="pri" data-act="loadcal">Charger les calendriers 2027</button></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 23</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
 }
 function render(){
   var a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.closest("form")&&!pending){pending=true;return}
@@ -354,7 +447,10 @@ delspeed:function(e){save("speeds","all",items("speeds","all").filter(function(x
 deltech:function(e){save("tech","all",items("tech","all").filter(function(x){return x.id!=e.v}));return 1},
 delvid:function(e){items("videos","all").forEach(function(x){if(x.id==e.v){if(x.assetId)blobDel(x.assetId);if(x.assetId2)blobDel(x.assetId2)}});save("videos","all",items("videos","all").filter(function(x){return x.id!=e.v}));return 1},
 delcal:function(e){save("calprev",S.player,items("calprev",S.player).filter(function(x){return x.id!=e.v}));return 1},
-delnote:function(e){idbDel("notes/"+e.v);delete S.d.notes[e.v]},
+delnote:function(e){idbDel("notes/"+e.v);delete S.d.notes[e.v];S.d.meta=S.d.meta||{};var tb=S.d.meta.tomb=S.d.meta.tomb||{notes:{}};tb.notes=tb.notes||{};tb.notes[e.v]=Date.now();idbSet("meta/tomb",tb);markDirty("notes__all.json");syncSoon()},
+sync:function(){if(!tok()){S.tab="data";S.anim=1;window.scrollTo(0,0);return}syncNow();return 1},
+rmtok:function(){try{localStorage.removeItem("gp_tok");localStorage.removeItem("gp_sha")}catch(e){}SY.st="off";SY.err=null;S.msg="Clé retirée de cet appareil."},
+savetok:function(){var t=($("#tokbox")||{}).value;t=(t||"").trim();if(!/^(github_pat_|ghp_)[A-Za-z0-9_]{20,}$/.test(t)){S.msg="Cette clé n'a pas le bon format (elle commence par github_pat_). Recopie-la en entier.";return}try{localStorage.setItem("gp_tok",t)}catch(e){S.msg="Impossible d'enregistrer la clé sur cet appareil.";return}lset("gp_sha",{});SY.st="sync";S.msg=null;setTimeout(syncNow,50)},
 export:function(){exportAll();return 1},
 wkprev:function(){S.wk=addDays(S.wk,-7)},wknext:function(){S.wk=addDays(S.wk,7)},wknow:function(){S.wk=mondayOf(todayIso())},
 rate:function(e){var p=e.v.split("|"),cur=((items("forme",S.player).filter(function(x){return x.id==S.player+"|"+p[0]})[0])||{})[p[1]];setField(p[0],p[1],cur==+p[2]?null:+p[2]);return 1},
@@ -390,7 +486,7 @@ document.addEventListener("submit",function(ev){
   if(act=="addspeed")save("speeds","all",items("speeds","all").concat([{id:uid(),player:P,date:d.date,clubMax:num(d.clubMax),clubMoy:num(d.clubMoy),ballMax:num(d.ballMax),ballMoy:num(d.ballMoy)}]));
   if(act=="addtech")save("tech","all",items("tech","all").concat([{id:uid(),player:P,date:d.date,coach:d.coach,text:d.text}]));
   if(act=="addcal")save("calprev",P,items("calprev",P).concat([{id:uid(),name:d.n,start:d.d,end:d.e||d.d,cat:d.cat}]));
-  if(act=="addnote"){var id="n"+uid();S.d.notes=S.d.notes||{};S.d.notes[id]={title:d.title,body:d.body};idbSet("notes/"+id,{title:d.title,body:d.body});render()}
+  if(act=="addnote"){var id="n"+uid();S.d.notes=S.d.notes||{};var nd={title:d.title,body:d.body,_m:Date.now()};S.d.notes[id]=nd;idbSet("notes/"+id,nd);markDirty("notes__all.json");render();syncSoon()}
   if(act=="editvid"){
     var data=(d.data||"").split("\n").map(function(l){var i=l.indexOf(":");return i<0?null:{l:l.slice(0,i).trim(),v:l.slice(i+1).trim()}}).filter(function(x){return x&&x.l&&x.v});
     var marks=(d.marks||"").split("\n").map(function(l){var i=l.indexOf("|");if(i<0)return null;var t=l.slice(0,i).trim().split(":"),sec=t.length==2?(+t[0])*60+(+t[1]):+t[0];return isNaN(sec)?null:{t:sec,text:l.slice(i+1).trim()}}).filter(function(x){return x&&x.text}).sort(function(a,b){return a.t-b.t});
@@ -425,7 +521,7 @@ function importAll(j){var n=0;
   if(Array.isArray(j.speeds))n+=merge("speeds","all",j.speeds.map(function(s){return Object.assign({},s,{id:s.id||uid(),date:iso8(s.date)})}),function(x){return x.player+x.date});
   var ap=j.app||{};
   Object.keys(ap).forEach(function(c){var docs=ap[c]||{};Object.keys(docs).forEach(function(id){var d=docs[id]||{};
-    if(c=="notes"){if(!(S.d.notes&&S.d.notes[id])){S.d.notes=S.d.notes||{};S.d.notes[id]=d;idbSet("notes/"+id,d);n++}}
+    if(c=="notes"){if(!(S.d.notes&&S.d.notes[id])){S.d.notes=S.d.notes||{};d._m=d._m||Date.now();S.d.notes[id]=d;idbSet("notes/"+id,d);markDirty("notes__all.json");n++}}
     else if(c=="comps"&&d.items)n+=mergeComps(id,d.items);
     else if(d.items)n+=merge(c,id,d.items,function(x){return c=="comps"?x.name+x.date:c=="speeds"?x.player+x.date:x.id})})});
   S.msg=n+" élément(s) importé(s).";render()}
@@ -435,8 +531,9 @@ function exportAll(){
   var payload=JSON.stringify({exportedAt:new Date().toISOString(),app:app,comps:{Matteo:{items:comps.Matteo},Xander:{items:comps.Xander},Sunil:{items:comps.Sunil},Davon:{items:comps.Davon}}},null,1);
   var b=new Blob([payload],{type:"application/json"}),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download="sauvegarde-golf-"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(a);a.click();setTimeout(function(){a.remove();URL.revokeObjectURL(u)},4000);S.msg="Sauvegarde générée (données, sans les vidéos).";render()}
 render();
-idbAll().then(function(rows){Object.keys(rows).forEach(function(k){var p=k.split("/");S.d[p[0]]=S.d[p[0]]||{};S.d[p[0]][p[1]]=rows[k]});render();
+idbAll().then(function(rows){Object.keys(rows).forEach(function(k){var p=k.split("/");S.d[p[0]]=S.d[p[0]]||{};S.d[p[0]][p[1]]=rows[k]});Object.keys(S.d).forEach(function(c){Object.keys(S.d[c]).forEach(function(i){if(S.d[c][i]&&S.d[c][i].items)snapDoc(c,i)})});S.ready.loaded=1;SY.st=tok()?"sync":"off";render();syncNow();
   if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){})}).catch(function(){S.msg="Stockage indisponible (navigation privée ?). Rien ne sera enregistré.";render()});
+document.addEventListener("visibilitychange",function(){if(!document.hidden)syncSoon()});window.addEventListener("online",syncSoon);
 if("serviceWorker" in navigator)window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})});
 })();
 </script>
