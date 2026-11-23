@@ -8,9 +8,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Suivi Perf">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#f2f5f1">
+<meta name="theme-color" content="#f1f3f8">
 <style>
-:root{--bg:#f2f5f1;--card:#ffffff;--fg:#14231b;--dim:#6b776f;--line:rgba(20,35,27,.09);--gold:#b8921b;--accent:#1f5a3a;--bad:#c4473f;--good:#2f8a4a;--input:#f6f8f5;
+:root{--bg:#f1f3f8;--card:#ffffff;--fg:#0e1730;--dim:#6a7390;--line:rgba(14,23,48,.09);--gold:#a8d324;--accent:#14213d;--lime:#a8d324;--bad:#c4473f;--good:#2f8a4a;--input:#f5f7fb;
 --c-Matteo:#b8921b;--c-Xander:#2f8fa6;--c-Sunil:#d0504a;--c-Davon:#5a9a47;color-scheme:light}
 @keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .anim .card,.anim .hero{animation:up .38s cubic-bezier(.2,.7,.2,1) both}
@@ -27,7 +27,7 @@ h3{font-size:15px;margin:14px 0 6px}
 .chip.on{color:var(--fg);border-color:var(--pc,var(--gold));background:color-mix(in srgb,var(--pc,var(--gold)) 18%,transparent)}
 .tab{flex:0 0 auto;padding:7px 13px;border-radius:999px;border:1px solid var(--line);background:var(--input);color:var(--dim);font-size:13px;font-weight:600}
 .tab.on{color:#fff;border-color:var(--accent);background:var(--accent)}
-.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;margin:12px 0;box-shadow:0 1px 2px rgba(20,35,27,.04),0 8px 24px rgba(20,35,27,.05)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;margin:12px 0;box-shadow:0 1px 2px rgba(14,23,48,.04),0 8px 24px rgba(14,23,48,.05)}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
 .stat{background:var(--input);border:1px solid var(--line);border-radius:14px;padding:8px 10px;min-width:0}
 .stat b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
@@ -41,7 +41,7 @@ label{display:block;font-size:11px;color:var(--dim);margin-bottom:2px}
 input,select,textarea{width:100%;background:var(--input);color:var(--fg);border:1px solid var(--line);border-radius:12px;padding:9px 10px;font:inherit;font-size:16px;min-width:0}
 textarea{min-height:90px}
 form .g{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:8px}
-button.pri{background:var(--accent);color:#fff;border:0;border-radius:12px;padding:11px 16px;font-size:14px;font-weight:700}
+button.pri{background:var(--lime);color:#14213d;border:0;border-radius:12px;padding:11px 16px;font-size:14px;font-weight:800}
 button.ghost{background:var(--input);border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:7px 11px;font-size:12px;font-weight:600}
 button.x{background:none;border:0;color:var(--dim);font-size:16px;padding:2px 6px}
 .msg{font-size:12.5px;padding:8px 10px;border-radius:8px;border:1px solid var(--line);margin:8px 0}
@@ -59,11 +59,11 @@ svg text{fill:var(--dim);font-size:10px}
 .bar.p{background:var(--good)}
 a{color:var(--accent)}
 .rb{width:40px;height:40px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--dim);font-size:15px;font-weight:700;padding:0}
-.rb.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.rb.on{background:var(--lime);border-color:var(--lime);color:#14213d}
 .rrow{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:8px 0;flex-wrap:wrap}
 .rrow small{display:block;color:var(--dim);font-size:11px}
 
-.pl{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:5px 14px 5px 5px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--dim);font-size:14px;font-weight:600;box-shadow:0 1px 2px rgba(20,35,27,.04)}
+.pl{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:5px 14px 5px 5px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--dim);font-size:14px;font-weight:600;box-shadow:0 1px 2px rgba(14,23,48,.04)}
 .pl.on{color:var(--fg);border-color:var(--pc);background:color-mix(in srgb,var(--pc) 14%,#fff)}
 .av{width:30px;height:30px;border-radius:50%;object-fit:cover;display:flex;align-items:center;justify-content:center;background:var(--pc);color:#fff;font-weight:800;font-size:14px;flex:0 0 auto;overflow:hidden}
 .av.big{width:64px;height:64px;font-size:26px;border:3px solid rgba(255,255,255,.7)}
@@ -75,9 +75,9 @@ a{color:var(--accent)}
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(255,255,255,.86);-webkit-backdrop-filter:saturate(180%) blur(18px);backdrop-filter:saturate(180%) blur(18px);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:6px max(8px,env(safe-area-inset-left,0px)) calc(6px + env(safe-area-inset-bottom,0px))}
 .nav button{flex:1;max-width:120px;background:none;border:0;color:var(--dim);display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;font-weight:600;padding:5px 0;border-radius:12px}
 .nav button svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.nav button.on{color:var(--accent)}.nav button.on svg{stroke-width:2.2}
+.nav button.on{color:var(--accent);position:relative}.nav button.on::before{content:'';position:absolute;top:-7px;width:26px;height:4px;border-radius:0 0 4px 4px;background:var(--lime)}.nav button.on svg{stroke-width:2.2}
 .more{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px}
-.more button{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px 14px;text-align:left;font-size:15px;font-weight:700;color:var(--fg);box-shadow:0 1px 2px rgba(20,35,27,.04),0 8px 24px rgba(20,35,27,.05);display:flex;flex-direction:column;gap:10px}
+.more button{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px 14px;text-align:left;font-size:15px;font-weight:700;color:var(--fg);box-shadow:0 1px 2px rgba(14,23,48,.04),0 8px 24px rgba(14,23,48,.05);display:flex;flex-direction:column;gap:10px}
 .more button svg{width:28px;height:28px;fill:none;stroke:var(--accent);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .back{background:none;border:0;color:var(--accent);font-size:14px;font-weight:700;padding:4px 0}
 </style>
@@ -334,7 +334,7 @@ function notesV(){
 }
 function dataV(){
   return'<div class="card"><h2>Sauvegarde</h2><p style="font-size:13px">Télécharge les données dans un fichier (les vidéos restent sur l\'appareil, elles ne sont pas incluses).</p><button class="pri" data-act="export">Exporter la sauvegarde</button></div>'+
-  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Calendriers 2027</h2><p style="font-size:13px">Charge les calendriers prévisionnels 2027 des 4 joueurs dans l\'onglet Calendrier (sans doublon si tu le refais).</p><button class="pri" data-act="loadcal">Charger les calendriers 2027</button></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 20</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
+  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Calendriers 2027</h2><p style="font-size:13px">Charge les calendriers prévisionnels 2027 des 4 joueurs dans l\'onglet Calendrier (sans doublon si tu le refais).</p><button class="pri" data-act="loadcal">Charger les calendriers 2027</button></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 21</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
 }
 function render(){
   var a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.closest("form")&&!pending){pending=true;return}
