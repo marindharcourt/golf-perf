@@ -202,7 +202,7 @@ function notesV(){
 }
 function dataV(){
   return'<div class="card"><h2>Sauvegarde</h2><p style="font-size:13px">Télécharge les données dans un fichier (les vidéos restent sur l\'appareil, elles ne sont pas incluses).</p><button class="pri" data-act="export">Exporter la sauvegarde</button></div>'+
-  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'
+  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Import par copier-coller</h2><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
 }
 function render(){
   var a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.closest("form")&&!pending){pending=true;return}
@@ -223,7 +223,7 @@ deltech:function(e){save("tech","all",items("tech","all").filter(function(x){ret
 delvid:function(e){items("videos","all").forEach(function(x){if(x.id==e.v&&x.assetId)blobDel(x.assetId)});save("videos","all",items("videos","all").filter(function(x){return x.id!=e.v}));return 1},
 delcal:function(e){save("cal","all",items("cal","all").filter(function(x){return x.id!=e.v}));return 1},
 delnote:function(e){idbDel("notes/"+e.v);delete S.d.notes[e.v]},
-export:function(){exportAll();return 1}
+export:function(){exportAll();return 1},paste:function(){var t=document.getElementById("pastebox");tryImport(t?t.value:"");return 1}
 };
 var CONF=null;
 document.addEventListener("click",function(ev){var t=ev.target.closest("[data-act]");if(!t||t.tagName=="FORM")return;var act=t.getAttribute("data-act");if(!A[act])return;
@@ -246,7 +246,10 @@ document.addEventListener("submit",function(ev){
     save("videos","all",items("videos","all").concat([rec]))}
   f.reset();
 });
-document.addEventListener("change",function(ev){if(ev.target.id!="imp")return;var f=ev.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(){try{importAll(JSON.parse(r.result))}catch(e){S.msg="Fichier invalide.";render()}};r.readAsText(f)});
+document.addEventListener("change",function(ev){if(ev.target.id!="imp")return;var f=ev.target.files[0];if(!f)return;
+  S.msg="Lecture de « "+f.name+" » ("+Math.round(f.size/1024)+" ko)…";render();
+  var r=new FileReader();r.onload=function(){tryImport(String(r.result||""))};r.onerror=function(){S.msg="Impossible de lire ce fichier. Essaie l'import par copier-coller plus bas.";render()};r.readAsText(f)});
+function tryImport(t){try{t=t.replace(/^\uFEFF/,"").trim();if(!t){S.msg="Le fichier est vide.";render();return}importAll(JSON.parse(t))}catch(e){S.msg="Contenu illisible ("+String(e&&e.message||e).slice(0,70)+"). Essaie l'import par copier-coller plus bas.";render()}}
 function merge(col,id,add,key){var cur=items(col,id),seen={};cur.forEach(function(x){seen[key(x)]=1});var n=0;add.forEach(function(x){if(!seen[key(x)]){cur=cur.concat([x]);n++}});if(n)save(col,id,cur);return n}
 function importAll(j){var n=0;
   if(j.competitions&&!Array.isArray(j.competitions))PL.forEach(function(p){var a=(j.competitions[p]||[]).map(function(c){return Object.assign({},c,{id:c.id||uid(),date:iso8(c.date)})});n+=merge("comps",p,a,function(x){return x.name+x.date})});
