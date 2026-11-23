@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#f1f3f8">
 <style>
-:root{--bg:#f1f3f8;--card:#ffffff;--fg:#0e1730;--dim:#6a7390;--line:rgba(14,23,48,.09);--gold:#a8d324;--accent:#14213d;--lime:#a8d324;--bad:#c4473f;--good:#2f8a4a;--input:#f5f7fb;
+:root{--bg:#f1f3f8;--card:#ffffff;--fg:#0e1730;--dim:#6a7390;--line:rgba(14,23,48,.09);--gold:#b8921b;--accent:#14213d;--lime:#e0b73a;--bad:#c4473f;--good:#2f8a4a;--input:#f5f7fb;
 --c-Matteo:#b8921b;--c-Xander:#2f8fa6;--c-Sunil:#d0504a;--c-Davon:#5a9a47;color-scheme:light}
 @keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .anim .card,.anim .hero{animation:up .38s cubic-bezier(.2,.7,.2,1) both}
@@ -334,7 +334,7 @@ function notesV(){
 }
 function dataV(){
   return'<div class="card"><h2>Sauvegarde</h2><p style="font-size:13px">Télécharge les données dans un fichier (les vidéos restent sur l\'appareil, elles ne sont pas incluses).</p><button class="pri" data-act="export">Exporter la sauvegarde</button></div>'+
-  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Calendriers 2027</h2><p style="font-size:13px">Charge les calendriers prévisionnels 2027 des 4 joueurs dans l\'onglet Calendrier (sans doublon si tu le refais).</p><button class="pri" data-act="loadcal">Charger les calendriers 2027</button></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 21</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
+  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Calendriers 2027</h2><p style="font-size:13px">Charge les calendriers prévisionnels 2027 des 4 joueurs dans l\'onglet Calendrier (sans doublon si tu le refais).</p><button class="pri" data-act="loadcal">Charger les calendriers 2027</button></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 22</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
 }
 function render(){
   var a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.closest("form")&&!pending){pending=true;return}
