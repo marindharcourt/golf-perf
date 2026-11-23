@@ -176,10 +176,11 @@ function techV(){
 }
 function mm(t){t=Math.floor(t||0);return Math.floor(t/60)+":"+String(t%60).padStart(2,"0")}
 function marksH(x){return(x.marks||[]).map(function(m){return'<div style="display:flex;gap:6px;align-items:baseline;font-size:12.5px;margin-top:4px"><button class="ghost" data-act="seek" data-v="'+m.t+'">▶ '+mm(m.t)+"</button><span>"+esc(m.text)+"</span></div>"}).join("")}
+function pairOf(x){if(!x.phase)return null;var o=x.phase=="avant"?"apres":"avant";var a=items("videos","all").filter(function(y){return y.player==x.player&&y.phase==o&&y.date==x.date});var b=a.filter(function(y){return y.tag==x.tag})[0];return b||a[0]||null}
 function vcard(x,full){
   var cmpOn=S.cmp.indexOf(x.id)>=0;
   var med=x.assetId?(x.mime&&x.mime.indexOf("image")==0?'<img data-blob="'+esc(x.assetId)+'" style="border-radius:10px">':'<video controls playsinline preload="metadata" data-blob="'+esc(x.assetId)+'"></video>'):"";
-  var h='<div class="card" data-vid="'+x.id+'" style="margin:0"><div style="display:flex;justify-content:space-between;gap:6px"><b style="font-size:14px">'+esc(x.title)+'</b>'+(full?'<button class="x" data-act="delvid" data-v="'+x.id+'">✕</button>':"")+"</div>"+med;
+  var h='<div class="card" data-vid="'+x.id+'" style="margin:0"><div style="display:flex;justify-content:space-between;gap:6px"><b style="font-size:14px">'+(x.phase?'<span class="tag" style="border-color:var(--gold);color:var(--gold)">'+(x.phase=="avant"?"AVANT":"APRÈS")+"</span> ":"")+esc(x.title)+'</b>'+(full?'<button class="x" data-act="delvid" data-v="'+x.id+'">✕</button>':"")+"</div>"+med;
   if(x.link)h+='<div style="margin:6px 0"><a href="'+esc(x.link)+'" target="_blank" rel="noopener">Ouvrir le lien ↗</a></div>';
   h+='<div style="margin-top:6px"><span class="tag">'+esc(x.tag||"")+'</span><span class="dim" style="font-size:12px">'+fd(x.date)+"</span></div>";
   if((x.data||[]).length)h+='<div style="margin-top:6px">'+x.data.map(function(d){return'<span class="tag">'+esc(d.l)+" : <b>"+esc(d.v)+"</b></span>"}).join("")+"</div>";
@@ -187,18 +188,19 @@ function vcard(x,full){
   if(!full)return h+"</div>";
   h+='<div class="marks">'+marksH(x)+'</div><div style="display:flex;gap:6px;margin-top:8px"><input class="markin" placeholder="Repère à l\'instant de la vidéo…"><button class="ghost" data-act="addmark" data-v="'+x.id+'" style="white-space:nowrap">＋ Repère</button></div>';
   h+='<div style="display:flex;gap:6px;margin-top:6px"><input class="dl" placeholder="Donnée (ex : Club speed)"><input class="dv" placeholder="Valeur" style="max-width:90px"><button class="ghost" data-act="adddata" data-v="'+x.id+'">＋</button></div>';
+  var pr=pairOf(x);h+='<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">'+(pr?'<button class="pri" data-act="pair" data-v="'+x.id+'">⇄ Avant / Après</button>':"")+'<button class="ghost" data-act="phase" data-v="'+x.id+'|avant" style="'+(x.phase=="avant"?"border-color:var(--gold);color:var(--fg)":"")+'">Avant</button><button class="ghost" data-act="phase" data-v="'+x.id+'|apres" style="'+(x.phase=="apres"?"border-color:var(--gold);color:var(--fg)":"")+'">Après</button></div>';
   h+='<div style="margin-top:8px"><button class="ghost" data-act="cmp" data-v="'+x.id+'" style="'+(cmpOn?"border-color:var(--gold);color:var(--fg)":"")+'">'+(cmpOn?"✓ Dans la comparaison":"Comparer")+"</button></div></div>";
   return h
 }
 function vidV(){
   var all=items("videos","all").filter(function(x){return x.player==S.player}).sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0});
   var v=all.filter(function(x){return!S.vtag||x.tag==S.vtag}),h="";
-  var cm=S.cmp.map(function(id){return all.filter(function(x){return x.id==id})[0]}).filter(Boolean).sort(function(a,b){return a.date<b.date?-1:1});
+  var cm=S.cmp.map(function(id){return all.filter(function(x){return x.id==id})[0]}).filter(Boolean).sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:(a.phase=="avant"?-1:1)});
   if(cm.length==2){h+='<div class="card" id="cmpbox"><h2>Comparaison · avant / après</h2><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px">'+cm.map(function(x){return vcard(x,false)}).join("")+'</div><div style="display:flex;gap:8px;margin-top:10px"><button class="pri" data-act="cmpplay">▶ Lecture synchro</button><button class="ghost" data-act="cmppause">Pause</button><button class="ghost" data-act="cmpclear">Fermer</button></div></div>'}
   else if(cm.length==1)h+='<div class="msg">Choisis une 2ᵉ vidéo (bouton « Comparer ») pour les voir côte à côte.</div>';
   var today=new Date().toISOString().slice(0,10);
   h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">Ajouter une vidéo · '+S.player+'</h2><button class="ghost" data-act="vadd">'+(S.vadd?"Fermer":"＋ Nouvelle")+"</button></div>";
-  if(S.vadd)h+='<form data-act="addvid" style="margin-top:10px"><div class="g"><div><label>Titre</label><input name="title" required></div><div><label>Date</label><input type="date" name="date" value="'+today+'"></div><div><label>Thème</label><select name="tag">'+TG.map(function(t){return"<option>"+t+"</option>"}).join("")+'</select></div></div><label>Vidéo ou photo (pellicule / caméra)</label><input type="file" name="file" accept="video/*,image/*" style="margin-bottom:8px"><label>…ou lien (YouTube, Drive…)</label><input name="link" style="margin-bottom:8px"><label>Commentaire</label><input name="note" style="margin-bottom:8px"><label>Données associées (facultatif)</label><div class="g">'+[1,2,3].map(function(i){return'<div style="display:flex;gap:4px"><input name="d'+i+'l" placeholder="ex : Club speed"><input name="d'+i+'v" placeholder="valeur" style="max-width:80px"></div>'}).join("")+'</div><button class="pri">'+(S.up?esc(S.up):"Ajouter")+"</button></form>";
+  if(S.vadd)h+='<form data-act="addvid" style="margin-top:10px"><div class="g"><div><label>Titre</label><input name="title" required></div><div><label>Date</label><input type="date" name="date" value="'+today+'"></div><div><label>Thème</label><select name="tag">'+TG.map(function(t){return"<option>"+t+"</option>"}).join("")+'</select></div></div><label>Moment de la séance</label><select name="phase" style="margin-bottom:8px"><option value="">—</option><option value="avant">Avant (début de séance)</option><option value="apres">Après (fin de séance)</option></select><label>Vidéo ou photo (pellicule / caméra)</label><input type="file" name="file" accept="video/*,image/*" style="margin-bottom:8px"><label>…ou lien (YouTube, Drive…)</label><input name="link" style="margin-bottom:8px"><label>Commentaire</label><input name="note" style="margin-bottom:8px"><label>Données associées (facultatif)</label><div class="g">'+[1,2,3].map(function(i){return'<div style="display:flex;gap:4px"><input name="d'+i+'l" placeholder="ex : Club speed"><input name="d'+i+'v" placeholder="valeur" style="max-width:80px"></div>'}).join("")+'</div><button class="pri">'+(S.up?esc(S.up):"Ajouter")+"</button></form>";
   h+="</div>";
   h+='<div class="row" style="padding-top:0"><button class="tab'+(!S.vtag?" on":"")+'" data-act="vtag" data-v="">Tous ('+all.length+")</button>"+TG.map(function(t){var n=all.filter(function(x){return x.tag==t}).length;return n?'<button class="tab'+(S.vtag==t?" on":"")+'" data-act="vtag" data-v="'+t+'">'+t+" ("+n+")</button>":""}).join("")+"</div>";
   var mo={},ks=[];v.forEach(function(x){var k=(x.date||"").slice(0,7);if(!mo[k]){mo[k]=[];ks.push(k)}mo[k].push(x)});
@@ -265,7 +267,7 @@ function notesV(){
 }
 function dataV(){
   return'<div class="card"><h2>Sauvegarde</h2><p style="font-size:13px">Télécharge les données dans un fichier (les vidéos restent sur l\'appareil, elles ne sont pas incluses).</p><button class="pri" data-act="export">Exporter la sauvegarde</button></div>'+
-  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 8</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
+  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 9</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
 }
 function render(){
   var a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.closest("form")&&!pending){pending=true;return}
@@ -292,6 +294,8 @@ rate:function(e){var p=e.v.split("|"),cur=((items("forme",S.player).filter(funct
 vadd:function(){S.vadd=!S.vadd},vtag:function(e){S.vtag=e.v||""},
 cmp:function(e){var i=S.cmp.indexOf(e.v);if(i>=0)S.cmp.splice(i,1);else{S.cmp.push(e.v);if(S.cmp.length>2)S.cmp.shift()}},
 cmpclear:function(){S.cmp=[]},
+pair:function(e){var x=items("videos","all").filter(function(y){return y.id==e.v})[0],o=x&&pairOf(x);if(!o)return 1;S.cmp=x.phase=="avant"?[x.id,o.id]:[o.id,x.id];setTimeout(function(){var b=document.getElementById("cmpbox");if(b)b.scrollIntoView({behavior:"smooth"})},60)},
+phase:function(e){var p=e.v.split("|");save("videos","all",items("videos","all").map(function(y){if(y.id!=p[0])return y;return Object.assign({},y,{phase:y.phase==p[1]?"":p[1]})}))},
 cmpplay:function(){document.querySelectorAll("#cmpbox video").forEach(function(v){v.currentTime=0;v.play().catch(function(){})});return 1},
 cmppause:function(){document.querySelectorAll("#cmpbox video").forEach(function(v){v.pause()});return 1},
 seek:function(e){var c=e.el.closest("[data-vid]"),vd=c&&c.querySelector("video");if(vd){vd.currentTime=+e.v;vd.play().catch(function(){})}return 1},
@@ -316,7 +320,7 @@ document.addEventListener("submit",function(ev){
   if(act=="addnote"){var id="n"+uid();S.d.notes=S.d.notes||{};S.d.notes[id]={title:d.title,body:d.body};idbSet("notes/"+id,{title:d.title,body:d.body});render()}
   if(act=="addvid"){
     var file=f.querySelector('input[type=file]').files[0];
-    var rec={id:uid(),player:P,title:d.title,date:d.date||new Date().toISOString().slice(0,10),tag:d.tag,note:d.note,link:d.link,data:[1,2,3].map(function(i){return{l:(d["d"+i+"l"]||"").trim(),v:(d["d"+i+"v"]||"").trim()}}).filter(function(x){return x.l&&x.v})};
+    var rec={id:uid(),player:P,title:d.title,date:d.date||new Date().toISOString().slice(0,10),tag:d.tag,note:d.note,link:d.link,phase:d.phase||"",data:[1,2,3].map(function(i){return{l:(d["d"+i+"l"]||"").trim(),v:(d["d"+i+"v"]||"").trim()}}).filter(function(x){return x.l&&x.v})};
     if(!file&&!d.link){S.msg="Choisis un fichier ou colle un lien.";render();return}
     
     if(file){S.up="Enregistrement…";render();var bid="b"+uid();blobPut(bid,file).then(function(){rec.assetId=bid;rec.mime=file.type;S.up=null;S.vadd=false;return save("videos","all",items("videos","all").concat([rec]))}).catch(function(e){S.up=null;S.msg="Échec de l'enregistrement de la vidéo (stockage plein ?).";render()});return}
