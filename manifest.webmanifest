@@ -1,11 +1,11 @@
 {
- "name": "Suivi Performance Golf",
- "short_name": "Golf Perf",
+ "name": "Suivi Perf",
+ "short_name": "Suivi Perf",
  "start_url": "./",
  "scope": "./",
  "display": "standalone",
- "background_color": "#132018",
- "theme_color": "#132018",
+ "background_color": "#f2f5f1",
+ "theme_color": "#f2f5f1",
  "lang": "fr",
  "icons": [
   {

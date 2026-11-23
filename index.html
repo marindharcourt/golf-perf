@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Suivi Performance Golf</title>
+<title>Suivi Perf</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Golf Perf">
+<meta name="apple-mobile-web-app-title" content="Suivi Perf">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#f2f5f1">
 <style>
@@ -141,7 +141,7 @@ var SEC=[["tests","Tests"],["speed","Vitesse"],["tech","Technique"],["notes","No
 function avatarH(p,big){var a=items("avatars",p)[0],c=big?"av big":"av";return a&&a.assetId?'<img class="'+c+'" alt="" data-blob="'+esc(a.assetId)+'" style="--pc:'+pc(p)+'">':'<span class="'+c+'" style="--pc:'+pc(p)+'">'+p[0]+"</span>"}
 function hdr(){
   var sec=SEC.filter(function(t){return t[0]==S.tab})[0],cur=sec?"more":S.tab;
-  return'<div class="sub">Pôle Performance FFGolf</div><h1>'+(sec?sec[1]:S.tab=="more"?"Plus":"Suivi Performance")+"</h1>"+
+  return'<div class="sub">Pôle Performance FFGolf</div><h1>'+(sec?sec[1]:S.tab=="more"?"Plus":"Suivi Perf")+"</h1>"+
   (sec?'<button class="back" data-act="tab" data-v="more">‹ Plus</button>':"")+
   '<div class="row">'+PL.map(function(p){return'<button class="pl'+(S.player==p?" on":"")+'" style="--pc:'+pc(p)+'" data-act="pl" data-v="'+p+'">'+avatarH(p)+p+"</button>"}).join("")+"</div>"+
   (S.msg?'<div class="msg">'+esc(S.msg)+' <button class="x" data-act="dm">×</button></div>':"")
@@ -334,7 +334,7 @@ function notesV(){
 }
 function dataV(){
   return'<div class="card"><h2>Sauvegarde</h2><p style="font-size:13px">Télécharge les données dans un fichier (les vidéos restent sur l\'appareil, elles ne sont pas incluses).</p><button class="pri" data-act="export">Exporter la sauvegarde</button></div>'+
-  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Calendriers 2027</h2><p style="font-size:13px">Charge les calendriers prévisionnels 2027 des 4 joueurs dans l\'onglet Calendrier (sans doublon si tu le refais).</p><button class="pri" data-act="loadcal">Charger les calendriers 2027</button></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 19</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
+  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Calendriers 2027</h2><p style="font-size:13px">Charge les calendriers prévisionnels 2027 des 4 joueurs dans l\'onglet Calendrier (sans doublon si tu le refais).</p><button class="pri" data-act="loadcal">Charger les calendriers 2027</button></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 20</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
 }
 function render(){
   var a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.closest("form")&&!pending){pending=true;return}
