@@ -22,6 +22,10 @@ h1{font-size:26px;margin:6px 0 2px;letter-spacing:-.02em}
 h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin:0 0 10px}
 h3{font-size:15px;margin:14px 0 6px}
 .syn{font:inherit;font-size:10.5px;letter-spacing:.04em;text-transform:none;border:1px solid var(--line);background:var(--card);color:var(--dim);border-radius:99px;padding:2px 9px;margin-left:6px;cursor:pointer}.syn.ok{color:var(--good);border-color:var(--good)}.syn.err{color:var(--bad);border-color:var(--bad)}.syn.sync{color:var(--gold)}
+.gear{background:none;border:0;padding:4px;color:var(--dim)}.gear svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.seg{display:flex;gap:6px;background:var(--input);border-radius:14px;padding:4px;margin:12px 0 4px}.seg button{flex:1;border:0;background:none;border-radius:11px;padding:9px 6px;font-size:13.5px;font-weight:700;color:var(--dim)}.seg button.on{background:var(--card);color:var(--fg);box-shadow:0 1px 3px rgba(14,23,48,.12)}
+.fab{position:fixed;right:max(18px,env(safe-area-inset-right,0px));bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:30;width:58px;height:58px;border-radius:50%;border:0;background:linear-gradient(145deg,#e0b73a,#b8921b);color:#14213d;font-size:34px;line-height:1;font-weight:400;box-shadow:0 8px 22px rgba(184,146,27,.45),0 2px 6px rgba(14,23,48,.2)}
+.sheetbg{position:fixed;inset:0;z-index:40;background:rgba(14,23,48,.45);display:flex;align-items:flex-end;justify-content:center}.sheet{width:100%;max-width:600px;max-height:88vh;overflow-y:auto;background:var(--card);border-radius:24px 24px 0 0;padding:10px 16px calc(18px + env(safe-area-inset-bottom,0px));animation:up .22s ease-out}@keyframes up{from{transform:translateY(40px);opacity:0}}.grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 10px}
 .sub{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
 .row{display:flex;gap:8px;overflow-x:auto;padding:10px 0 4px;-webkit-overflow-scrolling:touch}
 .chip{flex:0 0 auto;padding:8px 16px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--dim);font-size:14px;font-weight:600}
@@ -89,7 +93,7 @@ a{color:var(--accent)}
 var PL=["Matteo","Xander","Sunil","Davon"];
 var TABS=[["home","Accueil"],["comp","Compétitions"],["tests","Tests"],["speed","Vitesse"],["tech","Technique"],["vid","Vidéos"],["cal","Calendrier"],["notes","Notes"],["data","Données"]];
 var TESTS={putting:["Putting",60],fers:["Fers",120],driver:["Driver",90],wedging:["Wedging",135],autre:["Autre",100]};
-var S={player:"Matteo",tab:"home",d:{},ready:{},msg:null,calf:"Tous",calall:false,note:null,up:null,cmp:[],vtag:"",vadd:false,vedit:null,cp:{},bk:null,bkp:"12",rmc:null,wk:null};
+var S={player:"Matteo",tab:"home",mes:"speed",jr:"tech",fab:null,d:{},ready:{},msg:null,calf:"Tous",calall:false,note:null,up:null,cmp:[],vtag:"",vadd:false,vedit:null,cp:{},bk:null,bkp:"12",rmc:null,wk:null};
 var MN2=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"],TG=["Swing","Putting","Petit jeu","Approche","Driver","Parcours","Autre"];
 var db=true,assets=true,dl=true,pending=false;
 
@@ -229,17 +233,18 @@ function chart(series,o){
 }
 var pc=function(p){return"var(--c-"+p+")"};
 var IC={home:'<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5h4v5"/>',comp:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',vid:'<rect x="3" y="6" width="13" height="12" rx="3"/><path d="m16 10.5 5-3v9l-5-3"/>',cal:'<rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',more:'<circle cx="5.5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18.5" cy="12" r="1.4"/>',tests:'<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3"/>',speed:'<path d="M4 17a8 8 0 1 1 16 0"/><path d="m12 17 4-6"/>',tech:'<path d="M14 7 7 14M4 20l3-3M15 4l5 5-6 6-5-5z"/>',notes:'<path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7"/>',data:'<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/>'};
+IC.mes=IC.speed;IC.jour=IC.notes;
 function ico(k){return'<svg viewBox="0 0 24 24">'+IC[k]+"</svg>"}
-var SEC=[["tests","Tests"],["speed","Vitesse"],["tech","Technique"],["notes","Notes"],["data","Données"]],MAIN=[["home","Accueil"],["comp","Compétitions"],["vid","Vidéos"],["cal","Calendrier"],["more","Plus"]];
+var SEC=[["data","Données"]],MAIN=[["home","Accueil"],["comp","Compét."],["mes","Mesures"],["vid","Vidéos"],["cal","Calendrier"],["jour","Journal"]];
 function avatarH(p,big){var a=items("avatars",p)[0],c=big?"av big":"av";return a&&a.assetId?'<img class="'+c+'" alt="" data-blob="'+esc(a.assetId)+'" style="--pc:'+pc(p)+'">':'<span class="'+c+'" style="--pc:'+pc(p)+'">'+p[0]+"</span>"}
 function hdr(){
-  var sec=SEC.filter(function(t){return t[0]==S.tab})[0],cur=sec?"more":S.tab;
-  return'<div class="sub">Pôle Performance FFGolf '+synChip()+'</div><h1>'+(sec?sec[1]:S.tab=="more"?"Plus":"Suivi Perf")+"</h1>"+
-  (sec?'<button class="back" data-act="tab" data-v="more">‹ Plus</button>':"")+
+  var sec=S.tab=="data";
+  return'<div class="sub" style="display:flex;align-items:center;gap:2px">Pôle Performance FFGolf '+synChip()+'<span style="flex:1"></span><button class="gear" data-act="tab" data-v="data" aria-label="Données et réglages">'+ico("data")+"</button></div><h1>"+(sec?"Données":"Suivi Perf")+"</h1>"+
+  (sec?'<button class="back" data-act="tab" data-v="home">‹ Retour</button>':"")+
   '<div class="row">'+PL.map(function(p){return'<button class="pl'+(S.player==p?" on":"")+'" style="--pc:'+pc(p)+'" data-act="pl" data-v="'+p+'">'+avatarH(p)+p+"</button>"}).join("")+"</div>"+
   (S.msg?'<div class="msg">'+esc(S.msg)+' <button class="x" data-act="dm">×</button></div>':"")
 }
-function navH(){var sec=SEC.some(function(t){return t[0]==S.tab}),cur=sec?"more":S.tab;return'<div class="nav">'+MAIN.map(function(t){return'<button class="'+(cur==t[0]?"on":"")+'" data-act="tab" data-v="'+t[0]+'">'+ico(t[0])+"<span>"+t[1]+"</span></button>"}).join("")+"</div>"}
+function navH(){var cur=S.tab;return'<div class="nav">'+MAIN.map(function(t){return'<button class="'+(cur==t[0]?"on":"")+'" data-act="tab" data-v="'+t[0]+'">'+ico(t[0])+"<span>"+t[1]+"</span></button>"}).join("")+"</div>"}
 function moreV(){return'<div class="more">'+SEC.map(function(t){return'<button data-act="tab" data-v="'+t[0]+'">'+ico(t[0])+t[1]+"</button>"}).join("")+"</div>"}
 function spark(vals,w,h){vals=vals.filter(function(v){return v!=null});if(vals.length<2)return"";var mn=Math.min.apply(0,vals),mx=Math.max.apply(0,vals),r=(mx-mn)||1;var pts=vals.map(function(v,i){return(i/(vals.length-1)*(w-8)+4)+","+(h-4-(v-mn)/r*(h-8))}).join(" ");var lp=pts.split(" ").pop().split(",");return'<svg viewBox="0 0 '+w+" "+h+'" width="100%" height="'+h+'" style="margin-top:10px"><polyline fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" points="'+pts+'"/><circle cx="'+lp[0]+'" cy="'+lp[1]+'" r="4" fill="#fff"/></svg>'}
 function homeV(){
@@ -306,6 +311,19 @@ function compV(){
   h+='<div class="card sc"><h2>Historique détaillé</h2><table><tr><th>Tournoi</th><th>Date</th><th>SG</th><th>Dép</th><th>App</th><th>PJ</th><th>Putt</th><th>GIR</th><th>FIR</th><th>Scr</th><th>Drive</th>'+hc("proximiteDrapeau","<th>Prox</th>")+hc("teeInPlay","<th>TIP</th>")+hc("puttsPerGir","<th>P/GIR</th>")+'<th></th></tr>'+cs.slice().reverse().map(function(c){return"<tr><td>"+esc(c.name)+"</td><td>"+fd(c.date)+'</td><td class="'+sgc(c.sgTotal)+'"><b>'+sg(c.sgTotal)+"</b></td>"+["sgDepart","sgApproach","sgChipping","sgPutting"].map(function(k){return'<td class="'+sgc(c[k])+'">'+sg(c[k])+"</td>"}).join("")+"<td>"+fmt(c.gir,0)+"</td><td>"+fmt(c.fir,0)+"</td><td>"+fmt(c.scrambling,0)+"</td><td>"+fmt(c.drivingDistance,0)+"</td><td>"+fmt(c.proximiteDrapeau,1)+"</td><td>"+fmt(c.teeInPlay,0)+"</td><td>"+fmt(c.puttsPerGir,2)+'</td><td><button class="x" data-act="delcomp" data-v="'+c.id+'">✕</button></td></tr>'}).join("")+"</table></div>";
   return h
 }
+function segH(act,cur,opts){return'<div class="seg">'+opts.map(function(o){return'<button class="'+(cur==o[0]?"on":"")+'" data-act="'+act+'" data-v="'+o[0]+'">'+o[1]+"</button>"}).join("")+"</div>"}
+function mesV(){return segH("mseg",S.mes,[["speed","Vitesse"],["tests","Tests"]])+(S.mes=="tests"?testsV():speedV())}
+function jourV(){return segH("jseg",S.jr,[["tech","Technique"],["notes","Notes"]])+(S.jr=="notes"?notesV():techV())}
+function fabH(){
+  if(S.tab=="data")return"";
+  var h='<button class="fab" data-act="fab" aria-label="Ajouter">+</button>';
+  if(!S.fab)return h;
+  var K=[["speed","Vitesse"],["tests","Test"],["tech","Technique"],["notes","Note"],["vid","Vidéo"]],k=S.fab,td=new Date().toISOString().slice(0,10),f="";
+  if(k=="speed")f='<form data-act="addspeed"><div class="g"><div><label>Date</label><input type="date" name="date" required></div><div><label>Club max</label><input name="clubMax" inputmode="decimal" required></div><div><label>Club moy</label><input name="clubMoy" inputmode="decimal"></div><div><label>Balle max</label><input name="ballMax" inputmode="decimal"></div><div><label>Balle moy</label><input name="ballMoy" inputmode="decimal"></div></div><button class="pri">Enregistrer</button></form>';
+  if(k=="tests")f='<form data-act="addtest"><div class="g"><div><label>Test</label><select name="type">'+Object.keys(TESTS).map(function(x){return'<option value="'+x+'">'+TESTS[x][0]+" (/"+TESTS[x][1]+")</option>"}).join("")+'</select></div><div><label>Date</label><input type="date" name="date" required></div><div><label>Score</label><input name="score" inputmode="decimal" required></div><div><label>Sur (max)</label><input name="max" inputmode="decimal" placeholder="auto"></div></div><label>Note</label><input name="note" style="margin-bottom:8px"><button class="pri">Enregistrer</button></form>';
+  if(k=="tech")f='<form data-act="addtech"><div class="g"><div><label>Date</label><input type="date" name="date" required></div><div><label>Coach / source</label><input name="coach" placeholder="Mark Bull, moi…"></div></div><label>À retenir</label><textarea name="text" required style="margin-bottom:8px"></textarea><button class="pri">Enregistrer</button></form>';
+  if(k=="notes")f='<form data-act="addnote"><label>Titre</label><input name="title" required style="margin-bottom:8px"><label>Texte</label><textarea name="body" required style="margin-bottom:8px"></textarea><button class="pri">Enregistrer</button></form>';
+  return h+'<div class="sheetbg" data-act="fabx"><div class="sheet" data-stop="1"><div class="grab"></div><div class="row" style="padding-top:0">'+PL.map(function(p){return'<button class="pl'+(S.player==p?" on":"")+'" style="--pc:'+pc(p)+'" data-act="fabpl" data-v="'+p+'">'+avatarH(p)+p+"</button>"}).join("")+"</div>"+segH("fabk",k,K)+f+"</div></div>"}
 function testsV(){
   var all=items("tests","all").filter(function(x){return x.player==S.player}).sort(function(a,b){return a.date<b.date?-1:1});
   var cols={putting:"#c46fb0",fers:"#2f9bb5",driver:"#c9a227",wedging:"#8fb878",autre:"#999"};
@@ -427,13 +445,13 @@ function notesV(){
 }
 function dataV(){
   return synCard()+'<div class="card"><h2>Sauvegarde</h2><p style="font-size:13px">Télécharge les données dans un fichier (les vidéos restent sur l\'appareil, elles ne sont pas incluses).</p><button class="pri" data-act="export">Exporter la sauvegarde</button></div>'+
-  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Calendriers 2027</h2><p style="font-size:13px">Charge les calendriers prévisionnels 2027 des 4 joueurs dans l\'onglet Calendrier (sans doublon si tu le refais).</p><button class="pri" data-act="loadcal">Charger les calendriers 2027</button></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 24</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
+  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Calendriers 2027</h2><p style="font-size:13px">Charge les calendriers prévisionnels 2027 des 4 joueurs dans l\'onglet Calendrier (sans doublon si tu le refais).</p><button class="pri" data-act="loadcal">Charger les calendriers 2027</button></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 25</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
 }
 function render(){
   var a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.closest("form")&&!pending){pending=true;return}
   pending=false;
-  var v={more:moreV,home:homeV,comp:compV,tests:testsV,speed:speedV,forme:formeV,tech:techV,vid:vidV,cal:calV,notes:notesV,data:dataV}[S.tab]();
-  var ap=$("#app");ap.className=S.anim?"anim":"";S.anim=false;ap.innerHTML=hdr()+v+navH();hydrate();
+  var v={mes:mesV,jour:jourV,more:moreV,home:homeV,comp:compV,tests:testsV,speed:speedV,forme:formeV,tech:techV,vid:vidV,cal:calV,notes:notesV,data:dataV}[S.tab]();
+  var ap=$("#app");ap.className=S.anim?"anim":"";S.anim=false;ap.innerHTML=hdr()+v+navH()+fabH();var _t=new Date().toISOString().slice(0,10);ap.querySelectorAll('input[type=date]').forEach(function(i){if(!i.value&&i.name!="e")i.value=_t});hydrate();
 }
 document.addEventListener("focusout",function(){if(pending)setTimeout(render,150)});
 function fdata(f){var o={};new FormData(f).forEach(function(v,k){o[k]=v});return o}
@@ -448,6 +466,7 @@ deltech:function(e){save("tech","all",items("tech","all").filter(function(x){ret
 delvid:function(e){items("videos","all").forEach(function(x){if(x.id==e.v){if(x.assetId)blobDel(x.assetId);if(x.assetId2)blobDel(x.assetId2)}});save("videos","all",items("videos","all").filter(function(x){return x.id!=e.v}));return 1},
 delcal:function(e){save("calprev",S.player,items("calprev",S.player).filter(function(x){return x.id!=e.v}));return 1},
 delnote:function(e){idbDel("notes/"+e.v);delete S.d.notes[e.v];S.d.meta=S.d.meta||{};var tb=S.d.meta.tomb=S.d.meta.tomb||{notes:{}};tb.notes=tb.notes||{};tb.notes[e.v]=Date.now();idbSet("meta/tomb",tb);markDirty("notes__all.json");syncSoon()},
+mseg:function(e){S.mes=e.v},jseg:function(e){S.jr=e.v},fab:function(){S.fab=S.fab?null:(S.fk||"speed")},fabx:function(e){if(e.el.classList.contains("sheetbg")){if(e.ev.target!==e.el)return 1;S.fab=null}else return 1},fabpl:function(e){S.player=e.v},fabk:function(e){if(e.v=="vid"){S.fab=null;S.tab="vid";S.vadd=true;S.anim=1;window.scrollTo(0,0);return}S.fab=S.fk=e.v},
 sync:function(){if(!tok()){S.tab="data";S.anim=1;window.scrollTo(0,0);return}syncNow();return 1},
 rmtok:function(){try{localStorage.removeItem("gp_tok");localStorage.removeItem("gp_sha")}catch(e){}SY.st="off";SY.err=null;S.msg="Clé retirée de cet appareil."},
 savetok:function(){var t=($("#tokbox")||{}).value;t=(t||"").trim();if(!/^(github_pat_|ghp_)[A-Za-z0-9_]{20,}$/.test(t)){S.msg="Cette clé n'a pas le bon format (elle commence par github_pat_). Recopie-la en entier.";return}try{localStorage.setItem("gp_tok",t)}catch(e){S.msg="Impossible d'enregistrer la clé sur cet appareil.";return}lset("gp_sha",{});SY.st="sync";S.msg=null;setTimeout(syncNow,50)},
@@ -478,9 +497,9 @@ adddata:function(e){var c=e.el.closest("[data-vid]"),l=c.querySelector(".dl").va
 var CONF=null;
 document.addEventListener("click",function(ev){var im=ev.target.closest&&ev.target.closest("[data-vid] img");if(im){im.classList.toggle("zoom");return}var t=ev.target.closest("[data-act]");if(!t||t.tagName=="FORM")return;var act=t.getAttribute("data-act");if(!A[act])return;
   if(/^del/.test(act)){if(CONF!=act+t.getAttribute("data-v")){CONF=act+t.getAttribute("data-v");t.textContent="Sûr ?";t.style.color="var(--bad)";setTimeout(function(){CONF=null;render()},3000);return}CONF=null}
-  var r=A[act]({v:t.getAttribute("data-v"),el:t});if(!r)render()});
+  var r=A[act]({v:t.getAttribute("data-v"),el:t,ev:ev});if(!r)render()});
 document.addEventListener("submit",function(ev){
-  var f=ev.target,act=f.getAttribute("data-act");if(!act)return;ev.preventDefault();var d=fdata(f),P=S.player;
+  var f=ev.target,act=f.getAttribute("data-act");if(!act)return;ev.preventDefault();var d=fdata(f),P=S.player;if(S.fab&&/^add(speed|test|tech|note)$/.test(act)){S.fab=null;S.msg="Enregistré ✓ ("+P+")";setTimeout(function(){if(/^Enregistré/.test(S.msg||"")){S.msg=null;render()}},3500)}
   if(act=="addcomp"){var o={id:uid(),name:d.name,date:d.date};["sgTotal","sgDepart","sgApproach","sgChipping","sgPutting","gir","fir","scrambling","drivingDistance","teeInPlay","puttsPerGir","proximiteDrapeau","teeMajorPen","fwScramb","roughScramb","sandScramb","chipAvgDist","b0_3","b3_5","b5_10","b10_15","b15_25","b25_40","b40p"].forEach(function(k){o[k]=num(d[k])});save("comps",P,items("comps",P).concat([o]))}
   if(act=="addtest"){var mx=num(d.max)||TESTS[d.type][1],sc=num(d.score);if(sc==null)return;save("tests","all",items("tests","all").concat([{id:uid(),player:P,date:d.date,type:d.type,score:sc,max:mx,note:d.note}]))}
   if(act=="addspeed")save("speeds","all",items("speeds","all").concat([{id:uid(),player:P,date:d.date,clubMax:num(d.clubMax),clubMoy:num(d.clubMoy),ballMax:num(d.ballMax),ballMoy:num(d.ballMoy)}]));
