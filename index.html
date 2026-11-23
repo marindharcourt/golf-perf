@@ -71,7 +71,7 @@ a{color:var(--accent)}
 var PL=["Matteo","Xander","Sunil","Davon"];
 var TABS=[["home","Accueil"],["comp","Compétitions"],["tests","Tests"],["speed","Vitesse"],["tech","Technique"],["vid","Vidéos"],["cal","Calendrier"],["notes","Notes"],["data","Données"]];
 var TESTS={putting:["Putting",60],fers:["Fers",120],driver:["Driver",90],wedging:["Wedging",135],autre:["Autre",100]};
-var S={player:"Matteo",tab:"home",d:{},ready:{},msg:null,calf:"all",note:null,up:null,cmp:[],vtag:"",vadd:false,vedit:null,rmc:null,wk:null};
+var S={player:"Matteo",tab:"home",d:{},ready:{},msg:null,calf:"Tous",calall:false,note:null,up:null,cmp:[],vtag:"",vadd:false,vedit:null,rmc:null,wk:null};
 var MN2=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"],TG=["Swing","Putting","Petit jeu","Approche","Driver","Parcours","Autre"];
 var db=true,assets=true,dl=true,pending=false;
 
@@ -140,8 +140,8 @@ function homeV(){
   var sp=items("speeds","all").filter(function(x){return x.player==S.player}).sort(function(a,b){return a.date<b.date?-1:1}),ls=sp[sp.length-1];
   var ts_=items("tests","all").filter(function(x){return x.player==S.player}).sort(function(a,b){return a.date<b.date?1:-1}).slice(0,4);
   h+='<div class="card"><h2>Derniers relevés</h2><div class="grid"><div class="stat"><span>Club speed max</span><b>'+(ls?fmt(ls.clubMax,1):"—")+'</b></div>'+ts_.map(function(t){return'<div class="stat"><span>'+esc((TESTS[t.type]||[t.type])[0])+" · "+fd(t.date)+"</span><b>"+fmt(t.score/t.max*100,0)+"%</b></div>"}).join("")+"</div></div>";
-  var nx=items("cal","all").filter(function(e){return e.e>=new Date().toISOString().slice(0,10)}).sort(function(a,b){return a.d<b.d?-1:1}).slice(0,3);
-  if(nx.length)h+='<div class="card"><h2>Prochains tournois</h2>'+nx.map(function(e){return'<div style="font-size:13px;padding:4px 0">'+fd(e.d)+" · <b>"+esc(e.n)+'</b> <span class="dim">'+esc(e.v||"")+" · "+esc(e.cat)+"</span></div>"}).join("")+"</div>";
+  var td=new Date().toISOString().slice(0,10),nx=items("calprev",S.player).filter(function(e){return e.end>=td}).sort(function(a,b){return a.start<b.start?-1:1}).slice(0,3);
+  if(nx.length)h+='<div class="card"><h2>Prochains tournois</h2>'+nx.map(function(e){return'<div style="font-size:13px;padding:4px 0">'+fd(e.start)+" · <b>"+esc(e.name)+'</b> <span class="dim">'+esc(e.cat)+"</span></div>"}).join("")+"</div>";
   var lv=items("videos","all").filter(function(x){return x.player==S.player}).sort(function(a,b){return a.date<b.date?1:-1}).slice(0,3);
   if(lv.length)h+='<div class="card"><h2>Dernières vidéos</h2>'+lv.map(function(x){return'<div style="font-size:13px;padding:4px 0">'+fd(x.date)+" · <b>"+esc(x.title)+'</b> <span class="tag">'+esc(x.tag||"")+"</span></div>"}).join("")+'<button class="ghost" data-act="tab" data-v="vid" style="margin-top:6px">Voir toutes les vidéos</button></div>';
   return h
@@ -245,12 +245,15 @@ function formeV(){
   return h
 }
 function calV(){
-  var ev=items("cal","all").filter(function(e){return S.calf=="all"||e.cat==S.calf}).sort(function(a,b){return a.d<b.d?-1:1}),mo={},h="";
-  ev.forEach(function(e){var k=e.d.slice(0,7);(mo[k]=mo[k]||[]).push(e)});
-  var MN=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
-  h+='<div class="row" style="padding-top:0">'+[["all","Tous"],["U18","U18"],["U16","U16"]].map(function(f){return'<button class="tab'+(S.calf==f[0]?" on":"")+'" data-act="calf" data-v="'+f[0]+'">'+f[1]+"</button>"}).join("")+"</div>";
-  Object.keys(mo).forEach(function(k){h+='<div class="card"><h2>'+MN[+k.slice(5)-1]+" "+k.slice(0,4)+"</h2>"+mo[k].map(function(e){return'<div style="display:flex;gap:8px;align-items:baseline;padding:5px 0;border-top:1px solid var(--line);font-size:13px"><span class="dim" style="width:84px;flex:0 0 auto">'+fd(e.d).slice(0,5)+"→"+fd(e.e).slice(0,5)+'</span><span style="flex:1;min-width:0"><b>'+esc(e.n)+'</b><br><span class="dim">'+esc(e.v||"")+(e.c?" · "+esc(e.c):"")+'</span></span><span class="tag">'+esc(e.cat)+'</span><button class="x" data-act="delcal" data-v="'+e.id+'">✕</button></div>'}).join("")+"</div>"});
-  h+='<div class="card"><h2>Ajouter un tournoi</h2><form data-act="addcal"><div class="g"><div><label>Nom</label><input name="n" required></div><div><label>Lieu</label><input name="v"></div><div><label>Début</label><input type="date" name="d" required></div><div><label>Fin</label><input type="date" name="e"></div><div><label>Catégorie</label><select name="cat"><option>U18</option><option>U16</option><option>Autre</option></select></div></div><button class="pri">Ajouter</button></form></div>';
+  var P=S.player,CF=["Tous","International","Grand Prix","Équipe"],cf=CF.indexOf(S.calf)>=0?S.calf:"Tous",all=!!S.calall,h="",ev=[];
+  if(all)PL.forEach(function(p){items("calprev",p).forEach(function(e){ev.push(Object.assign({},e,{p:p}))})});else items("calprev",P).forEach(function(e){ev.push(Object.assign({},e,{p:P}))});
+  ev=ev.filter(function(e){return cf=="Tous"||e.cat==cf}).sort(function(a,b){return a.start<b.start?-1:a.start>b.start?1:0});
+  var CC={"International":"#4a8fd4","Grand Prix":"#8fb878","Équipe":"#e0766d"};
+  h+='<div class="row" style="padding-top:0">'+CF.map(function(f){return'<button class="tab'+(cf==f?" on":"")+'" data-act="calf" data-v="'+f+'">'+f+"</button>"}).join("")+'<button class="tab'+(all?" on":"")+'" data-act="calall">'+(all?"Tous les joueurs ✓":"Voir tous les joueurs")+"</button></div>";
+  if(!ev.length)h+='<div class="card dim">Pas de calendrier prévisionnel pour '+(all?"les joueurs":P)+' pour l\'instant. Importe le fichier « calendriers-previsionnels » dans l\'onglet Données.</div>';
+  var mo={};ev.forEach(function(e){var k=e.start.slice(0,7);(mo[k]=mo[k]||[]).push(e)});
+  Object.keys(mo).forEach(function(k){h+='<div class="card"><h2>'+MN2[+k.slice(5)-1]+" "+k.slice(0,4)+"</h2>"+mo[k].map(function(e){var same=e.start==e.end;return'<div style="display:flex;gap:8px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line);font-size:13px"><span class="dim" style="width:92px;flex:0 0 auto">'+fd(e.start).slice(0,5)+(same?"":" → "+fd(e.end).slice(0,5))+'</span><span style="flex:1;min-width:0"><b>'+esc(e.name)+"</b>"+(all?'<br><span style="color:var(--c-'+e.p+')">'+e.p+"</span>":"")+'</span><span class="tag" style="border-color:'+CC[e.cat]+";color:"+CC[e.cat]+'">'+esc(e.cat)+"</span>"+(all?"":'<button class="x" data-act="delcal" data-v="'+e.id+'">✕</button>')+"</div>"}).join("")+"</div>"});
+  if(!all)h+='<div class="card"><h2>Ajouter un tournoi · '+P+'</h2><form data-act="addcal"><div class="g"><div><label>Nom</label><input name="n" required></div><div><label>Début</label><input type="date" name="d" required></div><div><label>Fin</label><input type="date" name="e"></div><div><label>Catégorie</label><select name="cat"><option>International</option><option>Grand Prix</option><option>Équipe</option></select></div></div><button class="pri">Ajouter</button></form></div>';
   return h
 }
 function md(t){
@@ -273,7 +276,7 @@ function notesV(){
 }
 function dataV(){
   return'<div class="card"><h2>Sauvegarde</h2><p style="font-size:13px">Télécharge les données dans un fichier (les vidéos restent sur l\'appareil, elles ne sont pas incluses).</p><button class="pri" data-act="export">Exporter la sauvegarde</button></div>'+
-  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 14</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
+  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 15</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
 }
 function render(){
   var a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.closest("form")&&!pending){pending=true;return}
@@ -285,14 +288,14 @@ document.addEventListener("focusout",function(){if(pending)setTimeout(render,150
 function fdata(f){var o={};new FormData(f).forEach(function(v,k){o[k]=v});return o}
 function iso8(d){var p=d.split("/");return p.length==3?p[2]+"-"+p[1]+"-"+p[0]:d}
 var A={
-pl:function(e){S.player=e.v;S.note=null},tab:function(e){S.tab=e.v;S.note=null},dm:function(){S.msg=null},calf:function(e){S.calf=e.v},
+pl:function(e){S.player=e.v;S.note=null},tab:function(e){S.tab=e.v;S.note=null},dm:function(){S.msg=null},calf:function(e){S.calf=e.v},calall:function(){S.calall=!S.calall},
 nopen:function(e){S.note=e.v},nback:function(){S.note=null},
 delcomp:function(e){save("comps",S.player,items("comps",S.player).filter(function(x){return x.id!=e.v}));return 1},
 deltest:function(e){save("tests","all",items("tests","all").filter(function(x){return x.id!=e.v}));return 1},
 delspeed:function(e){save("speeds","all",items("speeds","all").filter(function(x){return x.id!=e.v}));return 1},
 deltech:function(e){save("tech","all",items("tech","all").filter(function(x){return x.id!=e.v}));return 1},
 delvid:function(e){items("videos","all").forEach(function(x){if(x.id==e.v){if(x.assetId)blobDel(x.assetId);if(x.assetId2)blobDel(x.assetId2)}});save("videos","all",items("videos","all").filter(function(x){return x.id!=e.v}));return 1},
-delcal:function(e){save("cal","all",items("cal","all").filter(function(x){return x.id!=e.v}));return 1},
+delcal:function(e){save("calprev",S.player,items("calprev",S.player).filter(function(x){return x.id!=e.v}));return 1},
 delnote:function(e){idbDel("notes/"+e.v);delete S.d.notes[e.v]},
 export:function(){exportAll();return 1},
 wkprev:function(){S.wk=addDays(S.wk,-7)},wknext:function(){S.wk=addDays(S.wk,7)},wknow:function(){S.wk=mondayOf(todayIso())},
@@ -326,7 +329,7 @@ document.addEventListener("submit",function(ev){
   if(act=="addtest"){var mx=num(d.max)||TESTS[d.type][1],sc=num(d.score);if(sc==null)return;save("tests","all",items("tests","all").concat([{id:uid(),player:P,date:d.date,type:d.type,score:sc,max:mx,note:d.note}]))}
   if(act=="addspeed")save("speeds","all",items("speeds","all").concat([{id:uid(),player:P,date:d.date,clubMax:num(d.clubMax),clubMoy:num(d.clubMoy),ballMax:num(d.ballMax),ballMoy:num(d.ballMoy)}]));
   if(act=="addtech")save("tech","all",items("tech","all").concat([{id:uid(),player:P,date:d.date,coach:d.coach,text:d.text}]));
-  if(act=="addcal")save("cal","all",items("cal","all").concat([{id:uid(),n:d.n,v:d.v,d:d.d,e:d.e||d.d,cat:d.cat}]));
+  if(act=="addcal")save("calprev",P,items("calprev",P).concat([{id:uid(),name:d.n,start:d.d,end:d.e||d.d,cat:d.cat}]));
   if(act=="addnote"){var id="n"+uid();S.d.notes=S.d.notes||{};S.d.notes[id]={title:d.title,body:d.body};idbSet("notes/"+id,{title:d.title,body:d.body});render()}
   if(act=="editvid"){
     var data=(d.data||"").split("\n").map(function(l){var i=l.indexOf(":");return i<0?null:{l:l.slice(0,i).trim(),v:l.slice(i+1).trim()}}).filter(function(x){return x&&x.l&&x.v});
