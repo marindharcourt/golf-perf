@@ -151,7 +151,7 @@ async function syncNow(){
     local["notes__all.json"]={c:"notes",id:"all",doc:notesDoc()};
     var r=await gh("/contents/data");
     if(r.status==401)throw{k:"auth"};
-    if(r.status==403||(r.status==404&&0))throw{k:"perm"};
+    if(r.status==403)throw{k:"perm",s:403,m:"liste"};
     var rem={};
     if(r.status==200){(await r.json()).forEach(function(f){if(/\.json$/.test(f.name))rem[f.name]={sha:f.sha}})}
     else if(r.status!=404)throw{k:"http",s:r.status};
@@ -182,14 +182,14 @@ async function syncNow(){
       var body={message:"Synchro "+new Date().toISOString().slice(0,16).replace("T"," ")+" · "+n,content:b64(mtxt)};if(rsha)body.sha=shas[n]&&R===null?shas[n]:rsha;
       var p=await gh("/contents/data/"+encodeURIComponent(n),{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
       if(p.status==409||p.status==422){SY.again=true;continue}
-      if(p.status==401)throw{k:"auth"};if(p.status==403||p.status==404)throw{k:"perm"};if(!p.ok)throw{k:"http",s:p.status};
+      if(p.status==401)throw{k:"auth"};if(p.status==403||p.status==404)throw{k:"perm",s:p.status,m:"écriture"};if(!p.ok)throw{k:"http",s:p.status};
       shas[n]=(await p.json()).content.sha;delete dirty[n]
     }
     lset("gp_sha",shas);lset("gp_dirty",dirty);
     SY.st="ok";SY.at=new Date();SY.tries=0;
   }catch(e){
     SY.st=(!navigator.onLine||e instanceof TypeError)?"offline":"err";
-    SY.err=e&&e.k=="auth"?"Clé refusée (expirée ou mal copiée).":e&&e.k=="perm"?"Accès refusé : la clé n'a pas le droit sur le dépôt de données.":e&&e.k=="json"?"Fichier illisible dans le coffre : "+e.n:e&&e.k=="http"?"Erreur GitHub ("+e.s+").":SY.st=="offline"?"Pas de réseau : les modifications partiront au retour de la connexion.":"Synchro impossible.";
+    SY.err=e&&e.k=="auth"?"Clé refusée (expirée ou mal copiée).":e&&e.k=="perm"?"Accès refusé ("+e.m+", code "+e.s+") : la clé n'a pas le droit d'écrire sur le dépôt de données.":e&&e.k=="json"?"Fichier illisible dans le coffre : "+e.n:e&&e.k=="http"?"Erreur GitHub ("+e.s+").":SY.st=="offline"?"Pas de réseau : les modifications partiront au retour de la connexion.":"Synchro impossible.";
   }
   SY.busy=false;render();
   if(SY.again&&SY.st=="ok"&&SY.tries<3){SY.again=false;SY.tries++;setTimeout(syncNow,800)}else SY.again=false
@@ -427,7 +427,7 @@ function notesV(){
 }
 function dataV(){
   return synCard()+'<div class="card"><h2>Sauvegarde</h2><p style="font-size:13px">Télécharge les données dans un fichier (les vidéos restent sur l\'appareil, elles ne sont pas incluses).</p><button class="pri" data-act="export">Exporter la sauvegarde</button></div>'+
-  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Calendriers 2027</h2><p style="font-size:13px">Charge les calendriers prévisionnels 2027 des 4 joueurs dans l\'onglet Calendrier (sans doublon si tu le refais).</p><button class="pri" data-act="loadcal">Charger les calendriers 2027</button></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 23</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
+  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Calendriers 2027</h2><p style="font-size:13px">Charge les calendriers prévisionnels 2027 des 4 joueurs dans l\'onglet Calendrier (sans doublon si tu le refais).</p><button class="pri" data-act="loadcal">Charger les calendriers 2027</button></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 24</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
 }
 function render(){
   var a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.closest("form")&&!pending){pending=true;return}
