@@ -68,7 +68,7 @@ a{color:var(--accent)}
 var PL=["Matteo","Xander","Sunil","Davon"];
 var TABS=[["home","Accueil"],["comp","Compétitions"],["tests","Tests"],["speed","Vitesse"],["tech","Technique"],["vid","Vidéos"],["cal","Calendrier"],["notes","Notes"],["data","Données"]];
 var TESTS={putting:["Putting",60],fers:["Fers",120],driver:["Driver",90],wedging:["Wedging",135],autre:["Autre",100]};
-var S={player:"Matteo",tab:"home",d:{},ready:{},msg:null,calf:"all",note:null,up:null,cmp:[],vtag:"",vadd:false,wk:null};
+var S={player:"Matteo",tab:"home",d:{},ready:{},msg:null,calf:"all",note:null,up:null,cmp:[],vtag:"",vadd:false,vedit:null,wk:null};
 var MN2=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"],TG=["Swing","Putting","Petit jeu","Approche","Driver","Parcours","Autre"];
 var db=true,assets=true,dl=true,pending=false;
 
@@ -181,7 +181,10 @@ function vcard(x,full){
   var cmpOn=S.cmp.indexOf(x.id)>=0;
   function m1(id,mi){return mi&&mi.indexOf("image")==0?'<img data-blob="'+esc(id)+'" style="border-radius:10px">':'<video controls playsinline preload="metadata" data-blob="'+esc(id)+'"></video>'}
   var med=x.assetId?(x.assetId2?'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'+m1(x.assetId,x.mime)+m1(x.assetId2,x.mime2)+'</div><div style="margin-top:6px"><button class="ghost" data-act="cardplay" data-v="'+x.id+'">▶ Lecture synchro</button> <button class="ghost" data-act="cardpause" data-v="'+x.id+'">Pause</button></div>':m1(x.assetId,x.mime)):"";
-  var h='<div class="card" data-vid="'+x.id+'" style="margin:0"><div style="display:flex;justify-content:space-between;gap:6px"><b style="font-size:14px">'+(x.phase?'<span class="tag" style="border-color:var(--gold);color:var(--gold)">'+(x.phase=="avant"?"AVANT":"APRÈS")+"</span> ":"")+esc(x.title)+'</b>'+(full?'<button class="x" data-act="delvid" data-v="'+x.id+'">✕</button>':"")+"</div>"+med;
+  var h='<div class="card" data-vid="'+x.id+'" style="margin:0"><div style="display:flex;justify-content:space-between;gap:6px"><b style="font-size:14px">'+(x.phase?'<span class="tag" style="border-color:var(--gold);color:var(--gold)">'+(x.phase=="avant"?"AVANT":"APRÈS")+"</span> ":"")+esc(x.title)+'</b>'+(full?'<span style="white-space:nowrap"><button class="ghost" data-act="vedit" data-v="'+x.id+'">'+(S.vedit==x.id?"Annuler":"✎ Modifier")+'</button> <button class="x" data-act="delvid" data-v="'+x.id+'">✕</button></span>':"")+"</div>"+med;
+  if(full&&S.vedit==x.id){
+    var dl=(x.data||[]).map(function(d){return d.l+" : "+d.v}).join("\n"),ml=(x.marks||[]).map(function(m){return mm(m.t)+" | "+m.text}).join("\n");
+    return h+'<form data-act="editvid" style="margin-top:8px"><input type="hidden" name="id" value="'+x.id+'"><label>Titre</label><input name="title" required value="'+esc(x.title)+'" style="margin-bottom:6px"><div class="g"><div><label>Date</label><input type="date" name="date" value="'+esc(x.date||"")+'"></div><div><label>Thème</label><select name="tag">'+TG.map(function(t){return"<option"+(t==x.tag?" selected":"")+">"+t+"</option>"}).join("")+'</select></div></div><label>Commentaire</label><textarea name="note" rows="4" style="margin-bottom:6px">'+esc(x.note||"")+'</textarea><label>Lien</label><input name="link" value="'+esc(x.link||"")+'" style="margin-bottom:6px"><label>Données (une par ligne : Nom : valeur)</label><textarea name="data" rows="3" style="margin-bottom:6px">'+esc(dl)+'</textarea><label>Repères (une par ligne : 0:12 | texte)</label><textarea name="marks" rows="3" style="margin-bottom:6px">'+esc(ml)+'</textarea>'+(x.assetId&&!x.assetId2?'<label>Ajouter une 2ᵉ vidéo ou photo</label><input type="file" name="file2" accept="video/*,image/*" style="margin-bottom:6px">':"")+'<button class="pri">Enregistrer</button></form></div>'}
   if(x.link)h+='<div style="margin:6px 0"><a href="'+esc(x.link)+'" target="_blank" rel="noopener">Ouvrir le lien ↗</a></div>';
   h+='<div style="margin-top:6px"><span class="tag">'+esc(x.tag||"")+'</span><span class="dim" style="font-size:12px">'+fd(x.date)+"</span></div>";
   if((x.data||[]).length)h+='<div style="margin-top:6px">'+x.data.map(function(d){return'<span class="tag">'+esc(d.l)+" : <b>"+esc(d.v)+"</b></span>"}).join("")+"</div>";
@@ -267,7 +270,7 @@ function notesV(){
 }
 function dataV(){
   return'<div class="card"><h2>Sauvegarde</h2><p style="font-size:13px">Télécharge les données dans un fichier (les vidéos restent sur l\'appareil, elles ne sont pas incluses).</p><button class="pri" data-act="export">Exporter la sauvegarde</button></div>'+
-  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 11</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
+  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 12</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
 }
 function render(){
   var a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.closest("form")&&!pending){pending=true;return}
@@ -291,7 +294,7 @@ delnote:function(e){idbDel("notes/"+e.v);delete S.d.notes[e.v]},
 export:function(){exportAll();return 1},
 wkprev:function(){S.wk=addDays(S.wk,-7)},wknext:function(){S.wk=addDays(S.wk,7)},wknow:function(){S.wk=mondayOf(todayIso())},
 rate:function(e){var p=e.v.split("|"),cur=((items("forme",S.player).filter(function(x){return x.id==S.player+"|"+p[0]})[0])||{})[p[1]];setField(p[0],p[1],cur==+p[2]?null:+p[2]);return 1},
-vadd:function(){S.vadd=!S.vadd},vtag:function(e){S.vtag=e.v||""},
+vadd:function(){S.vadd=!S.vadd},vedit:function(e){S.vedit=S.vedit==e.v?null:e.v},vtag:function(e){S.vtag=e.v||""},
 cmp:function(e){var i=S.cmp.indexOf(e.v);if(i>=0)S.cmp.splice(i,1);else{S.cmp.push(e.v);if(S.cmp.length>2)S.cmp.shift();if(S.cmp.length==2)setTimeout(function(){var b=document.getElementById("cmpbox");if(b)b.scrollIntoView({behavior:"smooth"})},60)}},
 cmpclear:function(){S.cmp=[]},
 cardplay:function(e){var c=e.el.closest("[data-vid]");c.querySelectorAll("video").forEach(function(v){v.currentTime=0;v.play().catch(function(){})});return 1},
@@ -320,6 +323,13 @@ document.addEventListener("submit",function(ev){
   if(act=="addtech")save("tech","all",items("tech","all").concat([{id:uid(),player:P,date:d.date,coach:d.coach,text:d.text}]));
   if(act=="addcal")save("cal","all",items("cal","all").concat([{id:uid(),n:d.n,v:d.v,d:d.d,e:d.e||d.d,cat:d.cat}]));
   if(act=="addnote"){var id="n"+uid();S.d.notes=S.d.notes||{};S.d.notes[id]={title:d.title,body:d.body};idbSet("notes/"+id,{title:d.title,body:d.body});render()}
+  if(act=="editvid"){
+    var data=(d.data||"").split("\n").map(function(l){var i=l.indexOf(":");return i<0?null:{l:l.slice(0,i).trim(),v:l.slice(i+1).trim()}}).filter(function(x){return x&&x.l&&x.v});
+    var marks=(d.marks||"").split("\n").map(function(l){var i=l.indexOf("|");if(i<0)return null;var t=l.slice(0,i).trim().split(":"),sec=t.length==2?(+t[0])*60+(+t[1]):+t[0];return isNaN(sec)?null:{t:sec,text:l.slice(i+1).trim()}}).filter(function(x){return x&&x.text}).sort(function(a,b){return a.t-b.t});
+    var fx=f.querySelector('input[name=file2]'),file2=fx&&fx.files[0],eid=d.id;
+    function fin(extra){S.vedit=null;save("videos","all",items("videos","all").map(function(y){return y.id!=eid?y:Object.assign({},y,{title:d.title,date:d.date||y.date,tag:d.tag,note:d.note,link:d.link,data:data,marks:marks},extra||{})}))}
+    if(file2){S.up="Enregistrement…";render();var b2="b"+uid();blobPut(b2,file2).then(function(){S.up=null;fin({assetId2:b2,mime2:file2.type})}).catch(function(){S.up=null;S.msg="Échec de l'enregistrement de la vidéo (stockage plein ?).";render()});return}
+    fin();return}
   if(act=="addvid"){
     var file=f.querySelector('input[name=file]').files[0],file2=f.querySelector('input[name=file2]').files[0];
     var rec={id:uid(),player:P,title:d.title,date:d.date||new Date().toISOString().slice(0,10),tag:d.tag,note:d.note,link:d.link,data:[1,2,3].map(function(i){return{l:(d["d"+i+"l"]||"").trim(),v:(d["d"+i+"v"]||"").trim()}}).filter(function(x){return x.l&&x.v})};
