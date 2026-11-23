@@ -64,7 +64,8 @@ a{color:var(--accent)}
 var PL=["Matteo","Xander","Sunil","Davon"];
 var TABS=[["home","Accueil"],["comp","Compétitions"],["tests","Tests"],["speed","Vitesse"],["tech","Technique"],["vid","Vidéos"],["cal","Calendrier"],["notes","Notes"],["data","Données"]];
 var TESTS={putting:["Putting",60],fers:["Fers",120],driver:["Driver",90],wedging:["Wedging",135],autre:["Autre",100]};
-var S={player:"Matteo",tab:"home",d:{},ready:{},msg:null,calf:"all",note:null,up:null};
+var S={player:"Matteo",tab:"home",d:{},ready:{},msg:null,calf:"all",note:null,up:null,cmp:[],vtag:"",vadd:false};
+var MN2=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"],TG=["Swing","Putting","Petit jeu","Approche","Driver","Parcours","Autre"];
 var db=true,assets=true,dl=true,pending=false;
 
 var _db;function idbOpen(){return _db||(_db=new Promise(function(res,rej){var r=indexedDB.open("golfperf",1);r.onupgradeneeded=function(){r.result.createObjectStore("kv");r.result.createObjectStore("blobs")};r.onsuccess=function(){res(r.result)};r.onerror=function(){rej(r.error)}}))}
@@ -75,7 +76,7 @@ function idbAll(){return idbOpen().then(function(d){return new Promise(function(
 function blobPut(k,b){return tx("blobs","readwrite",function(s){return s.put(b,k)})}
 function blobGet(k){return tx("blobs","readonly",function(s){return s.get(k)})}
 function blobDel(k){return tx("blobs","readwrite",function(s){return s.delete(k)})}
-var URLS={};function hydrate(){document.querySelectorAll("[data-blob]").forEach(function(el){var id=el.getAttribute("data-blob");if(URLS[id]){el.src=URLS[id];return}blobGet(id).then(function(b){if(b){URLS[id]=URL.createObjectURL(b);el.src=URLS[id]}})})}
+var URLS={};function hydrate(){document.querySelectorAll("[data-blob]").forEach(function(el){var id=el.getAttribute("data-blob");var sx=el.tagName=="VIDEO"?"#t=0.1":"";if(URLS[id]){el.src=URLS[id]+sx;return}blobGet(id).then(function(b){if(b){URLS[id]=URL.createObjectURL(b);el.src=URLS[id]+sx}})})}
 var $=function(s){return document.querySelector(s)};
 function esc(x){return String(x==null?"":x).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function uid(){return Math.random().toString(36).slice(2,10)}
@@ -134,6 +135,8 @@ function homeV(){
   h+='<div class="card"><h2>Derniers relevés</h2><div class="grid"><div class="stat"><span>Club speed max</span><b>'+(ls?fmt(ls.clubMax,1):"—")+'</b></div>'+ts_.map(function(t){return'<div class="stat"><span>'+esc((TESTS[t.type]||[t.type])[0])+" · "+fd(t.date)+"</span><b>"+fmt(t.score/t.max*100,0)+"%</b></div>"}).join("")+"</div></div>";
   var nx=items("cal","all").filter(function(e){return e.e>=new Date().toISOString().slice(0,10)}).sort(function(a,b){return a.d<b.d?-1:1}).slice(0,3);
   if(nx.length)h+='<div class="card"><h2>Prochains tournois</h2>'+nx.map(function(e){return'<div style="font-size:13px;padding:4px 0">'+fd(e.d)+" · <b>"+esc(e.n)+'</b> <span class="dim">'+esc(e.v||"")+" · "+esc(e.cat)+"</span></div>"}).join("")+"</div>";
+  var lv=items("videos","all").filter(function(x){return x.player==S.player}).sort(function(a,b){return a.date<b.date?1:-1}).slice(0,3);
+  if(lv.length)h+='<div class="card"><h2>Dernières vidéos</h2>'+lv.map(function(x){return'<div style="font-size:13px;padding:4px 0">'+fd(x.date)+" · <b>"+esc(x.title)+'</b> <span class="tag">'+esc(x.tag||"")+"</span></div>"}).join("")+'<button class="ghost" data-act="tab" data-v="vid" style="margin-top:6px">Voir toutes les vidéos</button></div>';
   return h
 }
 function compV(){
@@ -167,10 +170,36 @@ function techV(){
     return'<div class="card"><div style="display:flex;justify-content:space-between"><b>'+fd(x.date)+" · "+esc(x.coach||"")+'</b><button class="x" data-act="deltech" data-v="'+x.id+'">✕</button></div><div class="note">'+(x.text?esc(x.text):"")+(x.good&&x.good.length?"<h4>Points positifs</h4><ul>"+li(x.good)+"</ul>":"")+(x.work&&x.work.length?"<h4>À travailler</h4><ul>"+li(x.work)+"</ul>":"")+"</div></div>"}).join("")||'<div class="card dim">Rien pour '+S.player+".</div>";
   return h
 }
+function mm(t){t=Math.floor(t||0);return Math.floor(t/60)+":"+String(t%60).padStart(2,"0")}
+function marksH(x){return(x.marks||[]).map(function(m){return'<div style="display:flex;gap:6px;align-items:baseline;font-size:12.5px;margin-top:4px"><button class="ghost" data-act="seek" data-v="'+m.t+'">▶ '+mm(m.t)+"</button><span>"+esc(m.text)+"</span></div>"}).join("")}
+function vcard(x,full){
+  var cmpOn=S.cmp.indexOf(x.id)>=0;
+  var med=x.assetId?(x.mime&&x.mime.indexOf("image")==0?'<img data-blob="'+esc(x.assetId)+'" style="border-radius:10px">':'<video controls playsinline preload="metadata" data-blob="'+esc(x.assetId)+'"></video>'):"";
+  var h='<div class="card" data-vid="'+x.id+'" style="margin:0"><div style="display:flex;justify-content:space-between;gap:6px"><b style="font-size:14px">'+esc(x.title)+'</b>'+(full?'<button class="x" data-act="delvid" data-v="'+x.id+'">✕</button>':"")+"</div>"+med;
+  if(x.link)h+='<div style="margin:6px 0"><a href="'+esc(x.link)+'" target="_blank" rel="noopener">Ouvrir le lien ↗</a></div>';
+  h+='<div style="margin-top:6px"><span class="tag">'+esc(x.tag||"")+'</span><span class="dim" style="font-size:12px">'+fd(x.date)+"</span></div>";
+  if((x.data||[]).length)h+='<div style="margin-top:6px">'+x.data.map(function(d){return'<span class="tag">'+esc(d.l)+" : <b>"+esc(d.v)+"</b></span>"}).join("")+"</div>";
+  if(x.note)h+='<div style="font-size:12.5px;margin-top:6px">'+esc(x.note)+"</div>";
+  if(!full)return h+"</div>";
+  h+='<div class="marks">'+marksH(x)+'</div><div style="display:flex;gap:6px;margin-top:8px"><input class="markin" placeholder="Repère à l\'instant de la vidéo…"><button class="ghost" data-act="addmark" data-v="'+x.id+'" style="white-space:nowrap">＋ Repère</button></div>';
+  h+='<div style="display:flex;gap:6px;margin-top:6px"><input class="dl" placeholder="Donnée (ex : Club speed)"><input class="dv" placeholder="Valeur" style="max-width:90px"><button class="ghost" data-act="adddata" data-v="'+x.id+'">＋</button></div>';
+  h+='<div style="margin-top:8px"><button class="ghost" data-act="cmp" data-v="'+x.id+'" style="'+(cmpOn?"border-color:var(--gold);color:var(--fg)":"")+'">'+(cmpOn?"✓ Dans la comparaison":"Comparer")+"</button></div></div>";
+  return h
+}
 function vidV(){
-  var v=items("videos","all").filter(function(x){return x.player==S.player}).sort(function(a,b){return a.date<b.date?1:-1});
-  var h='<div class="card"><h2>Ajouter une vidéo · '+S.player+'</h2><form data-act="addvid"><div class="g"><div><label>Titre</label><input name="title" required></div><div><label>Date</label><input type="date" name="date"></div><div><label>Thème</label><select name="tag">'+["Swing","Putting","Petit jeu","Approche","Driver","Parcours","Autre"].map(function(t){return"<option>"+t+"</option>"}).join("")+'</select></div></div><label>Fichier vidéo ou photo (depuis la pellicule)</label><input type="file" name="file" accept="video/*,image/*" style="margin-bottom:8px"><label>…ou lien (YouTube, Drive…)</label><input name="link" style="margin-bottom:8px"><label>Commentaire</label><input name="note" style="margin-bottom:8px"><button class="pri"'+(assets?"":" disabled")+">"+(S.up?esc(S.up):"Ajouter")+"</button>"+(assets?"":'<div class="dim" style="font-size:12px;margin-top:6px">Envoi de fichiers réservé aux éditeurs : seul le lien est possible ici.</div>')+"</form></div>";
-  h+='<div class="vid">'+v.map(function(x){return'<div class="card" style="margin:0"><div style="display:flex;justify-content:space-between"><b style="font-size:14px">'+esc(x.title)+'</b><button class="x" data-act="delvid" data-v="'+x.id+'">✕</button></div>'+(x.assetId?(x.mime&&x.mime.indexOf("image")==0?'<img data-blob="'+esc(x.assetId)+'" style="border-radius:10px">':'<video controls playsinline preload="metadata" data-blob="'+esc(x.assetId)+'"></video>'):"")+(x.link?'<div style="margin:6px 0"><a href="'+esc(x.link)+'" target="_blank" rel="noopener">Ouvrir le lien ↗</a></div>':"")+'<div style="margin-top:6px"><span class="tag">'+esc(x.tag||"")+'</span><span class="dim" style="font-size:12px">'+fd(x.date)+"</span></div>"+(x.note?'<div style="font-size:12.5px;margin-top:4px">'+esc(x.note)+"</div>":"")+"</div>"}).join("")+"</div>"+(v.length?"":'<div class="card dim">Aucune vidéo pour '+S.player+".</div>");
+  var all=items("videos","all").filter(function(x){return x.player==S.player}).sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0});
+  var v=all.filter(function(x){return!S.vtag||x.tag==S.vtag}),h="";
+  var cm=S.cmp.map(function(id){return all.filter(function(x){return x.id==id})[0]}).filter(Boolean).sort(function(a,b){return a.date<b.date?-1:1});
+  if(cm.length==2){h+='<div class="card" id="cmpbox"><h2>Comparaison · avant / après</h2><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px">'+cm.map(function(x){return vcard(x,false)}).join("")+'</div><div style="display:flex;gap:8px;margin-top:10px"><button class="pri" data-act="cmpplay">▶ Lecture synchro</button><button class="ghost" data-act="cmppause">Pause</button><button class="ghost" data-act="cmpclear">Fermer</button></div></div>'}
+  else if(cm.length==1)h+='<div class="msg">Choisis une 2ᵉ vidéo (bouton « Comparer ») pour les voir côte à côte.</div>';
+  var today=new Date().toISOString().slice(0,10);
+  h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">Ajouter une vidéo · '+S.player+'</h2><button class="ghost" data-act="vadd">'+(S.vadd?"Fermer":"＋ Nouvelle")+"</button></div>";
+  if(S.vadd)h+='<form data-act="addvid" style="margin-top:10px"><div class="g"><div><label>Titre</label><input name="title" required></div><div><label>Date</label><input type="date" name="date" value="'+today+'"></div><div><label>Thème</label><select name="tag">'+TG.map(function(t){return"<option>"+t+"</option>"}).join("")+'</select></div></div><label>Vidéo ou photo (pellicule / caméra)</label><input type="file" name="file" accept="video/*,image/*" style="margin-bottom:8px"><label>…ou lien (YouTube, Drive…)</label><input name="link" style="margin-bottom:8px"><label>Commentaire</label><input name="note" style="margin-bottom:8px"><label>Données associées (facultatif)</label><div class="g">'+[1,2,3].map(function(i){return'<div style="display:flex;gap:4px"><input name="d'+i+'l" placeholder="ex : Club speed"><input name="d'+i+'v" placeholder="valeur" style="max-width:80px"></div>'}).join("")+'</div><button class="pri">'+(S.up?esc(S.up):"Ajouter")+"</button></form>";
+  h+="</div>";
+  h+='<div class="row" style="padding-top:0"><button class="tab'+(!S.vtag?" on":"")+'" data-act="vtag" data-v="">Tous ('+all.length+")</button>"+TG.map(function(t){var n=all.filter(function(x){return x.tag==t}).length;return n?'<button class="tab'+(S.vtag==t?" on":"")+'" data-act="vtag" data-v="'+t+'">'+t+" ("+n+")</button>":""}).join("")+"</div>";
+  var mo={},ks=[];v.forEach(function(x){var k=(x.date||"").slice(0,7);if(!mo[k]){mo[k]=[];ks.push(k)}mo[k].push(x)});
+  ks.forEach(function(k){h+='<h3 style="text-transform:capitalize;margin:16px 0 8px">'+(MN2[+k.slice(5)-1]||"")+" "+k.slice(0,4)+' <span class="dim" style="font-size:12px;font-weight:400">· '+mo[k].length+' vidéo'+(mo[k].length>1?"s":"")+'</span></h3><div class="vid">'+mo[k].map(function(x){return vcard(x,true)}).join("")+"</div>"});
+  if(!v.length)h+='<div class="card dim">Aucune vidéo pour '+S.player+(S.vtag?" dans « "+S.vtag+" »":"")+".</div>";
   return h
 }
 function calV(){
@@ -202,7 +231,7 @@ function notesV(){
 }
 function dataV(){
   return'<div class="card"><h2>Sauvegarde</h2><p style="font-size:13px">Télécharge les données dans un fichier (les vidéos restent sur l\'appareil, elles ne sont pas incluses).</p><button class="pri" data-act="export">Exporter la sauvegarde</button></div>'+
-  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 5</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
+  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 6</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
 }
 function render(){
   var a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.closest("form")&&!pending){pending=true;return}
@@ -223,12 +252,24 @@ deltech:function(e){save("tech","all",items("tech","all").filter(function(x){ret
 delvid:function(e){items("videos","all").forEach(function(x){if(x.id==e.v&&x.assetId)blobDel(x.assetId)});save("videos","all",items("videos","all").filter(function(x){return x.id!=e.v}));return 1},
 delcal:function(e){save("cal","all",items("cal","all").filter(function(x){return x.id!=e.v}));return 1},
 delnote:function(e){idbDel("notes/"+e.v);delete S.d.notes[e.v]},
-export:function(){exportAll();return 1},paste:function(){var t=document.getElementById("pastebox");tryImport(t?t.value:"");return 1}
+export:function(){exportAll();return 1},
+vadd:function(){S.vadd=!S.vadd},vtag:function(e){S.vtag=e.v||""},
+cmp:function(e){var i=S.cmp.indexOf(e.v);if(i>=0)S.cmp.splice(i,1);else{S.cmp.push(e.v);if(S.cmp.length>2)S.cmp.shift()}},
+cmpclear:function(){S.cmp=[]},
+cmpplay:function(){document.querySelectorAll("#cmpbox video").forEach(function(v){v.currentTime=0;v.play().catch(function(){})});return 1},
+cmppause:function(){document.querySelectorAll("#cmpbox video").forEach(function(v){v.pause()});return 1},
+seek:function(e){var c=e.el.closest("[data-vid]"),vd=c&&c.querySelector("video");if(vd){vd.currentTime=+e.v;vd.play().catch(function(){})}return 1},
+addmark:function(e){var c=e.el.closest("[data-vid]"),vd=c.querySelector("video"),inp=c.querySelector(".markin"),tx=inp.value.trim();if(!tx)return 1;
+  var t=vd?Math.floor(vd.currentTime||0):0,list=items("videos","all").map(function(x){if(x.id==e.v){x=Object.assign({},x);x.marks=(x.marks||[]).concat([{t:t,text:tx}]).sort(function(a,b){return a.t-b.t})}return x});
+  S.d.videos=S.d.videos||{};S.d.videos.all={items:list};idbSet("videos/all",{items:list});
+  var it=list.filter(function(x){return x.id==e.v})[0];c.querySelector(".marks").innerHTML=marksH(it);inp.value="";return 1},
+adddata:function(e){var c=e.el.closest("[data-vid]"),l=c.querySelector(".dl").value.trim(),v=c.querySelector(".dv").value.trim();if(!l||!v)return 1;
+  save("videos","all",items("videos","all").map(function(x){if(x.id==e.v){x=Object.assign({},x);x.data=(x.data||[]).concat([{l:l,v:v}])}return x}));return 1},paste:function(){var t=document.getElementById("pastebox");tryImport(t?t.value:"");return 1}
 };
 var CONF=null;
 document.addEventListener("click",function(ev){var t=ev.target.closest("[data-act]");if(!t||t.tagName=="FORM")return;var act=t.getAttribute("data-act");if(!A[act])return;
   if(/^del/.test(act)){if(CONF!=act+t.getAttribute("data-v")){CONF=act+t.getAttribute("data-v");t.textContent="Sûr ?";t.style.color="var(--bad)";setTimeout(function(){CONF=null;render()},3000);return}CONF=null}
-  var r=A[act]({v:t.getAttribute("data-v")});if(!r)render()});
+  var r=A[act]({v:t.getAttribute("data-v"),el:t});if(!r)render()});
 document.addEventListener("submit",function(ev){
   var f=ev.target,act=f.getAttribute("data-act");if(!act)return;ev.preventDefault();var d=fdata(f),P=S.player;
   if(act=="addcomp"){var o={id:uid(),name:d.name,date:d.date};["sgTotal","sgDepart","sgApproach","sgChipping","sgPutting","gir","fir","scrambling","drivingDistance","teeInPlay"].forEach(function(k){o[k]=num(d[k])});save("comps",P,items("comps",P).concat([o]))}
@@ -239,11 +280,11 @@ document.addEventListener("submit",function(ev){
   if(act=="addnote"){var id="n"+uid();S.d.notes=S.d.notes||{};S.d.notes[id]={title:d.title,body:d.body};idbSet("notes/"+id,{title:d.title,body:d.body});render()}
   if(act=="addvid"){
     var file=f.querySelector('input[type=file]').files[0];
-    var rec={id:uid(),player:P,title:d.title,date:d.date||new Date().toISOString().slice(0,10),tag:d.tag,note:d.note,link:d.link};
+    var rec={id:uid(),player:P,title:d.title,date:d.date||new Date().toISOString().slice(0,10),tag:d.tag,note:d.note,link:d.link,data:[1,2,3].map(function(i){return{l:(d["d"+i+"l"]||"").trim(),v:(d["d"+i+"v"]||"").trim()}}).filter(function(x){return x.l&&x.v})};
     if(!file&&!d.link){S.msg="Choisis un fichier ou colle un lien.";render();return}
     
-    if(file){S.up="Enregistrement…";render();var bid="b"+uid();blobPut(bid,file).then(function(){rec.assetId=bid;rec.mime=file.type;S.up=null;return save("videos","all",items("videos","all").concat([rec]))}).catch(function(e){S.up=null;S.msg="Échec de l'enregistrement de la vidéo (stockage plein ?).";render()});return}
-    save("videos","all",items("videos","all").concat([rec]))}
+    if(file){S.up="Enregistrement…";render();var bid="b"+uid();blobPut(bid,file).then(function(){rec.assetId=bid;rec.mime=file.type;S.up=null;S.vadd=false;return save("videos","all",items("videos","all").concat([rec]))}).catch(function(e){S.up=null;S.msg="Échec de l'enregistrement de la vidéo (stockage plein ?).";render()});return}
+    S.vadd=false;save("videos","all",items("videos","all").concat([rec]))}
   f.reset();
 });
 document.addEventListener("change",function(ev){if(ev.target.id!="imp")return;var f=ev.target.files[0];if(!f)return;
