@@ -48,6 +48,9 @@ button.x{background:none;border:0;color:var(--dim);font-size:16px;padding:2px 6p
 .msg{font-size:12.5px;padding:8px 10px;border-radius:8px;border:1px solid var(--line);margin:8px 0}
 .vid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
 video{width:100%;border-radius:10px;background:#000;max-height:300px}
+[data-vid] img{display:block;width:100%;height:210px;object-fit:contain;background:#0d1712;border-radius:10px;cursor:zoom-in}
+[data-vid] img.zoom{height:auto;max-height:none;cursor:zoom-out}
+.m2 video{height:210px;object-fit:contain}
 .tag{display:inline-block;font-size:10.5px;padding:2px 7px;border-radius:999px;border:1px solid var(--line);color:var(--dim);margin-right:4px}
 .note{white-space:pre-wrap;font-size:13.5px;line-height:1.55}
 .note h4{margin:14px 0 4px;font-size:14px}
@@ -180,7 +183,7 @@ function pairOf(x){if(!x.phase)return null;var o=x.phase=="avant"?"apres":"avant
 function vcard(x,full){
   var cmpOn=S.cmp.indexOf(x.id)>=0;
   function m1(id,mi){return mi&&mi.indexOf("image")==0?'<img data-blob="'+esc(id)+'" style="border-radius:10px">':'<video controls playsinline preload="metadata" data-blob="'+esc(id)+'"></video>'}
-  var med=x.assetId?(x.assetId2?'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'+m1(x.assetId,x.mime)+m1(x.assetId2,x.mime2)+'</div><div style="margin-top:6px"><button class="ghost" data-act="cardplay" data-v="'+x.id+'">▶ Lecture synchro</button> <button class="ghost" data-act="cardpause" data-v="'+x.id+'">Pause</button></div>':m1(x.assetId,x.mime)):"";
+  var med=x.assetId?(x.assetId2?'<div class="m2" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center">'+m1(x.assetId,x.mime)+m1(x.assetId2,x.mime2)+'</div><div style="margin-top:6px"><button class="ghost" data-act="cardplay" data-v="'+x.id+'">▶ Lecture synchro</button> <button class="ghost" data-act="cardpause" data-v="'+x.id+'">Pause</button></div>':m1(x.assetId,x.mime)):"";
   var h='<div class="card" data-vid="'+x.id+'" style="margin:0"><div style="display:flex;justify-content:space-between;gap:6px"><b style="font-size:14px">'+(x.phase?'<span class="tag" style="border-color:var(--gold);color:var(--gold)">'+(x.phase=="avant"?"AVANT":"APRÈS")+"</span> ":"")+esc(x.title)+'</b>'+(full?'<span style="white-space:nowrap"><button class="ghost" data-act="vedit" data-v="'+x.id+'">'+(S.vedit==x.id?"Annuler":"✎ Modifier")+'</button> <button class="x" data-act="delvid" data-v="'+x.id+'">✕</button></span>':"")+"</div>"+med;
   if(full&&S.vedit==x.id){
     var dl=(x.data||[]).map(function(d){return d.l+" : "+d.v}).join("\n"),ml=(x.marks||[]).map(function(m){return mm(m.t)+" | "+m.text}).join("\n");
@@ -270,7 +273,7 @@ function notesV(){
 }
 function dataV(){
   return'<div class="card"><h2>Sauvegarde</h2><p style="font-size:13px">Télécharge les données dans un fichier (les vidéos restent sur l\'appareil, elles ne sont pas incluses).</p><button class="pri" data-act="export">Exporter la sauvegarde</button></div>'+
-  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 13</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
+  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 14</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
 }
 function render(){
   var a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.closest("form")&&!pending){pending=true;return}
@@ -314,7 +317,7 @@ adddata:function(e){var c=e.el.closest("[data-vid]"),l=c.querySelector(".dl").va
   save("videos","all",items("videos","all").map(function(x){if(x.id==e.v){x=Object.assign({},x);x.data=(x.data||[]).concat([{l:l,v:v}])}return x}));return 1},paste:function(){var t=document.getElementById("pastebox");tryImport(t?t.value:"");return 1}
 };
 var CONF=null;
-document.addEventListener("click",function(ev){var t=ev.target.closest("[data-act]");if(!t||t.tagName=="FORM")return;var act=t.getAttribute("data-act");if(!A[act])return;
+document.addEventListener("click",function(ev){var im=ev.target.closest&&ev.target.closest("[data-vid] img");if(im){im.classList.toggle("zoom");return}var t=ev.target.closest("[data-act]");if(!t||t.tagName=="FORM")return;var act=t.getAttribute("data-act");if(!A[act])return;
   if(/^del/.test(act)){if(CONF!=act+t.getAttribute("data-v")){CONF=act+t.getAttribute("data-v");t.textContent="Sûr ?";t.style.color="var(--bad)";setTimeout(function(){CONF=null;render()},3000);return}CONF=null}
   var r=A[act]({v:t.getAttribute("data-v"),el:t});if(!r)render()});
 document.addEventListener("submit",function(ev){
