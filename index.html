@@ -149,14 +149,30 @@ function mergeDoc(L,R){
   return{items:out,del:del}}
 function notesDoc(){var ns=S.d.notes||{},t=(S.d.meta&&S.d.meta.tomb&&S.d.meta.tomb.notes)||{};return{items:Object.keys(ns).map(function(k){return{id:k,title:ns[k].title,body:ns[k].body,_m:ns[k]._m||0}}),del:t}}
 function b64(s){return btoa(unescape(encodeURIComponent(s)))}
-function gh(path,opt){opt=opt||{};opt.headers=Object.assign({"Authorization":"Bearer "+tok(),"Accept":"application/vnd.github+json"},opt.headers);return fetch("https://api.github.com/repos/"+SY.owner+"/"+SY.repo+path,opt)}
-function syncSoon(){if(!tok())return;clearTimeout(SY.t);SY.t=setTimeout(syncNow,2500)}
+function gh(path,opt,repo,t){opt=opt||{};opt.headers=Object.assign({"Authorization":"Bearer "+(t||tok()),"Accept":"application/vnd.github+json"},opt.headers);return fetch("https://api.github.com/repos/"+SY.owner+"/"+(repo||SY.repo)+path,opt)}
+var INB="suivi-perf-inbox",ROLE=lget("gp_role",null);
+function isPl(){return!!(ROLE&&ROLE.p&&ROLE.k)}
+function tokAny(){return isPl()?ROLE.k:tok()}
+(function(){try{var m=/[#&]j=([A-Za-z]+)&k=([A-Za-z0-9_]+)/.exec(location.hash);if(m&&PL.indexOf(m[1])>=0){ROLE={p:m[1],k:m[2]};lset("gp_role",ROLE);history.replaceState(null,"",location.pathname+location.search)}}catch(e){}})();
+function syncSoon(){if(!tokAny())return;clearTimeout(SY.t);SY.t=setTimeout(syncNow,2500)}
 async function syncNow(){
+  if(isPl())return syncPlayer();
   if(!tok()){SY.st="off";render();return}
   if(SY.busy){SY.again=true;return}
   if(!S.ready.loaded)return;
   SY.busy=true;SY.st="sync";SY.err=null;render();
   try{
+    var inbNew=0;
+    try{var li=await gh("/contents/in",{},INB);
+      if(li.status==200){var fl=await li.json(),ish=lget("gp_ish",{});
+        for(var fi=0;fi<fl.length;fi++){var f=fl[fi];if(!/\.json$/.test(f.name)||ish[f.name]===f.sha)continue;
+          var g0=await gh("/contents/in/"+encodeURIComponent(f.name),{headers:{"Accept":"application/vnd.github.raw+json"}},INB);if(!g0.ok)continue;
+          var rj=JSON.parse(await g0.text());
+          ["speeds","tests","putt"].forEach(function(c){var R=rj[c];if(!R)return;var cur=(S.d[c]&&S.d[c].all)||{items:[],del:{}},Lc={items:cur.items||[],del:cur.del||{}},Rf={items:(R.items||[]).filter(function(x){return x&&x.id}),del:R.del||{}},have={};Lc.items.forEach(function(x){have[x.id]=1});
+            var M0=mergeDoc(Lc,Rf);if(ser(M0)!==ser(Lc)){inbNew+=M0.items.filter(function(x){return!have[x.id]}).length;S.d[c]=S.d[c]||{};S.d[c].all=M0;idbSet(c+"/all",M0);snapDoc(c,"all");markDirty(c+"__all.json")}});
+          ish[f.name]=f.sha}
+        lset("gp_ish",ish)}
+    }catch(e0){}
     var shas=lget("gp_sha",{}),dirty=lget("gp_dirty",{}),names={},local={},changed=false;
     Object.keys(S.d).forEach(function(c){if(SY.skip[c]||c=="notes")return;Object.keys(S.d[c]).forEach(function(id){var d=S.d[c][id];if(d&&Array.isArray(d.items)){local[c+"__"+id+".json"]={c:c,id:id,doc:{items:d.items,del:d.del||{}}}}})});
     local["notes__all.json"]={c:"notes",id:"all",doc:notesDoc()};
@@ -197,7 +213,7 @@ async function syncNow(){
       shas[n]=(await p.json()).content.sha;delete dirty[n]
     }
     lset("gp_sha",shas);lset("gp_dirty",dirty);
-    SY.st="ok";SY.at=new Date();SY.tries=0;
+    SY.st="ok";SY.at=new Date();SY.tries=0;if(inbNew)S.msg=inbNew+" nouvelle"+(inbNew>1?"s":"")+" saisie"+(inbNew>1?"s":"")+" de joueur"+(inbNew>1?"s":"")+" reçue"+(inbNew>1?"s":"")+".";
   }catch(e){
     SY.st=(!navigator.onLine||e instanceof TypeError)?"offline":"err";
     SY.err=e&&e.k=="auth"?"Clé refusée (expirée ou mal copiée).":e&&e.k=="perm"?"Accès refusé ("+e.m+", code "+e.s+") : la clé n'a pas le droit d'écrire sur le dépôt de données.":e&&e.k=="json"?"Fichier illisible dans le coffre : "+e.n:e&&e.k=="http"?"Erreur GitHub ("+e.s+").":SY.st=="offline"?"Pas de réseau : les modifications partiront au retour de la connexion.":"Synchro impossible.";
@@ -205,6 +221,51 @@ async function syncNow(){
   SY.busy=false;render();
   if(SY.again&&SY.st=="ok"&&SY.tries<3){SY.again=false;SY.tries++;setTimeout(syncNow,800)}else SY.again=false
 }
+
+async function syncPlayer(){
+  if(SY.busy){SY.again=true;return}if(!S.ready.loaded)return;
+  SY.busy=true;SY.st="sync";SY.err=null;render();
+  try{
+    var P=ROLE.p,T=ROLE.k,name="in/"+P+".json",cols=["speeds","tests","putt"],loc={};
+    cols.forEach(function(c){var d=S.d[c]&&S.d[c].all;loc[c]={items:((d&&d.items)||[]).filter(function(x){return x.player==P}),del:(d&&d.del)||{}}});
+    var build=function(o){return'{"player":'+JSON.stringify(P)+","+cols.map(function(c){return JSON.stringify(c)+":"+ser(o[c])}).join(",")+"}\n"};
+    var r=await gh("/contents/"+name,{},INB,T),R={},sha=null;
+    if(r.status==401)throw{k:"auth"};if(r.status==403)throw{k:"perm",s:403,m:"lecture"};
+    if(r.status==200){var j=await r.json();sha=j.sha;var rj=JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\s/g,"")))));cols.forEach(function(c){var x=rj[c]||{};R[c]={items:(x.items||[]).filter(function(i){return i&&i.id&&i.player==P}),del:x.del||{}}})}
+    else if(r.status!=404)throw{k:"http",s:r.status};
+    cols.forEach(function(c){R[c]=R[c]||{items:[],del:{}}});
+    var M={};cols.forEach(function(c){M[c]=mergeDoc(loc[c],R[c]);if(ser(M[c])!==ser(loc[c])){S.d[c]=S.d[c]||{};S.d[c].all=M[c];idbSet(c+"/all",M[c]);snapDoc(c,"all")}});
+    var mt=build(M);
+    if(mt!==build(R)){var body={message:"Saisie "+P+" "+new Date().toISOString().slice(0,16).replace("T"," "),content:b64(mt)};if(sha)body.sha=sha;
+      var pr=await gh("/contents/"+name,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)},INB,T);
+      if(pr.status==409||pr.status==422)SY.again=true;else if(pr.status==401)throw{k:"auth"};else if(pr.status==403||pr.status==404)throw{k:"perm",s:pr.status,m:"écriture"};else if(!pr.ok)throw{k:"http",s:pr.status}}
+    SY.st="ok";SY.at=new Date();SY.tries=0;
+  }catch(e){
+    SY.st=(!navigator.onLine||e instanceof TypeError)?"offline":"err";
+    SY.err=e&&e.k=="auth"?"Code refusé (expiré ou invalide). Demande un nouveau code à ton coach.":e&&e.k=="perm"?"Accès refusé ("+e.m+", code "+e.s+"). Préviens ton coach.":e&&e.k=="http"?"Erreur GitHub ("+e.s+").":SY.st=="offline"?"Pas de réseau : tes saisies partiront au retour de la connexion.":"Synchro impossible."}
+  SY.busy=false;render();
+  if(SY.again&&SY.st=="ok"&&SY.tries<3){SY.again=false;SY.tries++;setTimeout(syncNow,800)}else SY.again=false}
+function hasAny(){var c=S.d.comps||{};return Object.keys(c).some(function(k){return(c[k].items||[]).length})}
+function parseCode(t){t=String(t||"").trim();var m=/^JOUEUR:([A-Za-z]+):([A-Za-z0-9_]+)$/.exec(t)||/[#&]j=([A-Za-z]+)&k=([A-Za-z0-9_]+)/.exec(t);return m&&PL.indexOf(m[1])>=0&&/^github_pat_/.test(m[2])?{p:m[1],k:m[2]}:null}
+function activCard(){return'<div class="card"><h2>Mode joueur</h2><p style="font-size:13px">Colle ici le code d\'activation que ton coach t\'a envoyé.</p><input id="acode" placeholder="JOUEUR:…" autocomplete="off" autocapitalize="off" style="margin-bottom:8px"><button class="pri" data-act="actcode">Activer</button></div>'}
+function coachCodes(){
+  var h='<div class="card"><h2>Accès joueurs</h2><p style="font-size:13px">Pour chaque joueur : colle sa clé (celle de la boîte de réception), touche « Créer le code », puis envoie-lui le code qui s\'affiche.</p>';
+  h+=PL.map(function(P){return'<div style="display:flex;gap:6px;align-items:end;margin-bottom:8px"><div style="flex:1"><label>'+P+'</label><input type="password" id="gk-'+P+'" placeholder="github_pat_…" autocomplete="off" autocapitalize="off"></div><button class="ghost" data-act="gcode" data-v="'+P+'">Créer le code</button></div>'}).join("");
+  if(S.code)h+='<div class="note" style="margin-top:8px">Code de '+esc(S.code.p)+' (à envoyer au joueur) :</div><textarea readonly id="codebox" style="min-height:70px">'+esc(S.code.c)+"</textarea>";
+  return h+"</div>"}
+function plHomeV(){
+  var P=S.player,sp=items("speeds","all").filter(function(x){return x.player==P&&x.clubMax!=null}).sort(function(a,b){return a.date<b.date?-1:1}),ls=sp[sp.length-1],ps=sp[sp.length-2],
+  ts=items("tests","all").filter(function(x){return x.player==P}).sort(function(a,b){return a.date<b.date?-1:1}),lt=ts[ts.length-1],
+  pt=items("putt","all").filter(function(x){return x.player==P}).sort(function(a,b){return a.date<b.date?-1:1}),lp=pt[pt.length-1],lq=lp&&summP(lp.rows);
+  var tile=function(l,v,d){return"<div><span>"+l+"</span><b>"+v+"</b>"+(d||"")+"</div>"};
+  var h='<div class="hero pcard" style="--pc:'+pc(P)+'"><div class="ph">'+avatarH(P,1)+'<div><div class="pn">Salut '+P+'</div><div class="ps">Tes mesures d\'entraînement</div></div></div><div class="hs4" style="grid-template-columns:repeat(3,1fr)">'+
+   tile("Vitesse club",ls?fmt(ls.clubMax,1):"—",ls&&ps?arrow(ls.clubMax-ps.clubMax,1):"")+tile("Dernier test",lt?fmt(lt.score/lt.max*100,0)+"%":"—",(lt?'<i class="ar0">'+esc((TESTS[lt.type]||[lt.type])[0])+"</i>":""))+tile("Putting",lq?sg(lq.sg/lq.n):"—",lq?'<i class="ar0">SG / putt</i>':"")+"</div></div>";
+  h+='<button class="pri" data-act="fab" style="width:100%;padding:14px;font-size:16px">+ Ajouter une mesure</button>';
+  if(sp.length>1)h+='<div class="card"><h2>Vitesse de club</h2>'+chart([{name:"Club max",color:pc(P),pts:sp.map(function(x){return[ts_(x.date),x.clubMax]})}],{d:0})+"</div>";
+  h+='<div class="card"><h2>Dernières saisies</h2>'+(ts.slice(-3).reverse().map(function(t){return'<div style="font-size:13px;padding:4px 0">'+fd(t.date)+" · "+esc((TESTS[t.type]||[t.type])[0])+" · <b>"+fmt(t.score/t.max*100,0)+"%</b></div>"}).join("")+sp.slice(-3).reverse().map(function(x){return'<div style="font-size:13px;padding:4px 0">'+fd(x.date)+" · Vitesse · <b>"+fmt(x.clubMax,1)+"</b></div>"}).join("")||'<div class="dim">Rien pour l\'instant. Touche « + Ajouter une mesure ».</div>')+"</div>";
+  h+='<div class="dim" style="font-size:11px;text-align:center;margin-top:18px">'+(SY.err?esc(SY.err)+"<br>":"")+'<button class="ghost" data-act="plout">Désactiver le mode joueur</button></div>';
+  return h}
+function ts_(iso){return new Date(iso+"T12:00:00").getTime()}
 function synChip(){
   var m={off:["Non synchronisé","off"],sync:["Synchronisation…","sync"],ok:["Synchronisé ✓","ok"],offline:["Hors ligne","err"],err:["Synchro en erreur","err"]}[SY.st]||["","off"];
   return'<button class="syn '+m[1]+'" data-act="sync">☁ '+m[0]+"</button>"}
@@ -246,12 +307,12 @@ var SEC=[["data","Données"]],MAIN=[["home","Accueil"],["comp","Compét."],["mes
 function avatarH(p,big){var a=items("avatars",p)[0],c=big?"av big":"av";return a&&a.assetId?'<img class="'+c+'" alt="" data-blob="'+esc(a.assetId)+'" style="--pc:'+pc(p)+'">':'<span class="'+c+'" style="--pc:'+pc(p)+'">'+p[0]+"</span>"}
 function hdr(){
   var sec=S.tab=="data";
-  return'<div class="sub" style="display:flex;align-items:center;gap:2px">Pôle Performance FFGolf '+synChip()+'<span style="flex:1"></span><button class="gear" data-act="tab" data-v="data" aria-label="Données et réglages">'+ico("data")+"</button></div><h1>"+(sec?"Données":"Suivi Perf")+"</h1>"+
+  return'<div class="sub" style="display:flex;align-items:center;gap:2px">Pôle Performance FFGolf '+synChip()+'<span style="flex:1"></span>'+(isPl()?"":'<button class="gear" data-act="tab" data-v="data" aria-label="Données et réglages">'+ico("data")+"</button>")+"</div><h1>"+(sec?"Données":"Suivi Perf")+"</h1>"+
   (sec?'<button class="back" data-act="tab" data-v="home">‹ Retour</button>':"")+
-  '<div class="row">'+PL.map(function(p){return'<button class="pl'+(S.player==p?" on":"")+'" style="--pc:'+pc(p)+'" data-act="pl" data-v="'+p+'">'+avatarH(p)+p+"</button>"}).join("")+"</div>"+
+  (isPl()?"":'<div class="row">'+PL.map(function(p){return'<button class="pl'+(S.player==p?" on":"")+'" style="--pc:'+pc(p)+'" data-act="pl" data-v="'+p+'">'+avatarH(p)+p+"</button>"}).join("")+"</div>")+
   (S.msg?'<div class="msg">'+esc(S.msg)+' <button class="x" data-act="dm">×</button></div>':"")
 }
-function navH(){var cur=S.tab;return'<div class="nav">'+MAIN.map(function(t){return'<button class="'+(cur==t[0]?"on":"")+'" data-act="tab" data-v="'+t[0]+'">'+ico(t[0])+"<span>"+t[1]+"</span></button>"}).join("")+"</div>"}
+function navH(){var cur=S.tab;return'<div class="nav">'+(isPl()?[["home","Accueil"],["mes","Mesures"]]:MAIN).map(function(t){return'<button class="'+(cur==t[0]?"on":"")+'" data-act="tab" data-v="'+t[0]+'">'+ico(t[0])+"<span>"+t[1]+"</span></button>"}).join("")+"</div>"}
 function moreV(){return'<div class="more">'+SEC.map(function(t){return'<button data-act="tab" data-v="'+t[0]+'">'+ico(t[0])+t[1]+"</button>"}).join("")+"</div>"}
 function spark(vals,w,h){vals=vals.filter(function(v){return v!=null});if(vals.length<2)return"";var mn=Math.min.apply(0,vals),mx=Math.max.apply(0,vals),r=(mx-mn)||1;var pts=vals.map(function(v,i){return(i/(vals.length-1)*(w-8)+4)+","+(h-4-(v-mn)/r*(h-8))}).join(" ");var lp=pts.split(" ").pop().split(",");return'<svg viewBox="0 0 '+w+" "+h+'" width="100%" height="'+h+'" style="margin-top:10px"><polyline fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" points="'+pts+'"/><circle cx="'+lp[0]+'" cy="'+lp[1]+'" r="4" fill="#fff"/></svg>'}
 function arrow(d,u){if(d==null||isNaN(d)||Math.abs(d)<0.005)return'<i class="ar0">—</i>';return'<i class="'+(d>0?"arg":"arb")+'">'+(d>0?"▲ ":"▼ ")+fmt(Math.abs(d),u==null?1:u)+"</i>"}
@@ -278,7 +339,8 @@ function radarV(cs){
   '<div class="sc"><table><tr><th></th><th>'+(hasB?"Avant":"")+"</th><th>Récent</th><th></th></tr>"+rows+"</table></div></div>"}
 function arrowC(d,u){if(d==null||isNaN(d)||Math.abs(d)<0.005)return"—";return'<b class="'+(d>0?"pos":"neg")+'">'+(d>0?"▲ ":"▼ ")+fmt(Math.abs(d),u)+"</b>"}
 function homeV(){
-  var cs=items("comps",S.player).slice().sort(function(a,b){return a.date<b.date?-1:1}),l=cs[cs.length-1],p=cs[cs.length-2],h="";
+  var act=(!isPl()&&!tok()&&!hasAny())?activCard():"";
+  var cs=items("comps",S.player).slice().sort(function(a,b){return a.date<b.date?-1:1}),l=cs[cs.length-1],p=cs[cs.length-2],h=act;
   var av='<label style="cursor:pointer;flex:0 0 auto">'+avatarH(S.player,1)+'<input type="file" id="avin" accept="image/*" style="display:none"></label>';
   var spd=items("speeds","all").filter(function(x){return x.player==S.player&&x.clubMax!=null}).sort(function(a,b){return a.date<b.date?-1:1}),lsp=spd[spd.length-1],psp=spd[spd.length-2];
   var tile=function(lab,val,dl){return"<div><span>"+lab+"</span><b>"+val+"</b>"+(dl||"")+"</div>"};
@@ -378,12 +440,12 @@ function fabH(){
   if(S.tab=="data")return"";
   var h='<button class="fab" data-act="fab" aria-label="Ajouter">+</button>';
   if(!S.fab)return h;
-  var K=[["speed","Vitesse"],["tests","Test"],["tech","Technique"],["notes","Note"],["vid","Vidéo"]],k=S.fab,td=new Date().toISOString().slice(0,10),f="";
+  var K=isPl()?[["speed","Vitesse"],["tests","Test"]]:[["speed","Vitesse"],["tests","Test"],["tech","Technique"],["notes","Note"],["vid","Vidéo"]],k=S.fab,td=new Date().toISOString().slice(0,10),f="";
   if(k=="speed")f='<form data-act="addspeed"><div class="g"><div><label>Date</label><input type="date" name="date" required></div><div><label>Club max</label><input name="clubMax" inputmode="decimal" required></div><div><label>Club moy</label><input name="clubMoy" inputmode="decimal"></div><div><label>Balle max</label><input name="ballMax" inputmode="decimal"></div><div><label>Balle moy</label><input name="ballMoy" inputmode="decimal"></div></div><button class="pri">Enregistrer</button></form>';
   if(k=="tests")f='<form data-act="addtest"><div class="g"><div><label>Test</label><select name="type">'+Object.keys(TESTS).map(function(x){return'<option value="'+x+'">'+TESTS[x][0]+" (/"+TESTS[x][1]+")</option>"}).join("")+'</select></div><div><label>Date</label><input type="date" name="date" required></div><div><label>Score</label><input name="score" inputmode="decimal" required></div><div><label>Sur (max)</label><input name="max" inputmode="decimal" placeholder="auto"></div></div><label>Note</label><input name="note" style="margin-bottom:8px"><button class="pri">Enregistrer</button></form>';
   if(k=="tech")f='<form data-act="addtech"><div class="g"><div><label>Date</label><input type="date" name="date" required></div><div><label>Coach / source</label><input name="coach" placeholder="Mark Bull, moi…"></div></div><label>À retenir</label><textarea name="text" required style="margin-bottom:8px"></textarea><button class="pri">Enregistrer</button></form>';
   if(k=="notes")f='<form data-act="addnote"><label>Titre</label><input name="title" required style="margin-bottom:8px"><label>Texte</label><textarea name="body" required style="margin-bottom:8px"></textarea><button class="pri">Enregistrer</button></form>';
-  return h+'<div class="sheetbg" data-act="fabx"><div class="sheet" data-stop="1"><div class="grab"></div><div class="row" style="padding-top:0">'+PL.map(function(p){return'<button class="pl'+(S.player==p?" on":"")+'" style="--pc:'+pc(p)+'" data-act="fabpl" data-v="'+p+'">'+avatarH(p)+p+"</button>"}).join("")+"</div>"+segH("fabk",k,K)+f+"</div></div>"}
+  return h+'<div class="sheetbg" data-act="fabx"><div class="sheet" data-stop="1"><div class="grab"></div>'+(isPl()?"":'<div class="row" style="padding-top:0">'+PL.map(function(p){return'<button class="pl'+(S.player==p?" on":"")+'" style="--pc:'+pc(p)+'" data-act="fabpl" data-v="'+p+'">'+avatarH(p)+p+"</button>"}).join("")+"</div>")+segH("fabk",k,K)+f+"</div></div>"}
 function testsV(){
   var all=items("tests","all").filter(function(x){return x.player==S.player}).sort(function(a,b){return a.date<b.date?-1:1});
   var cols={putting:"#c46fb0",fers:"#2f9bb5",driver:"#c9a227",wedging:"#8fb878",autre:"#999"};
@@ -505,13 +567,14 @@ function notesV(){
 }
 function themeCard(){var v=null;try{v=localStorage.getItem("gp_theme")}catch(e){}return'<div class="card"><h2>Apparence</h2>'+segH("theme",v||"auto",[["auto","Auto"],["light","Clair"],["dark","Sombre"]])+'<div class="dim" style="font-size:12px;margin-top:8px">Auto suit le réglage de l\'iPad (clair le jour, sombre le soir).</div></div>'}
 function dataV(){
-  return synCard()+themeCard()+'<div class="card"><h2>Sauvegarde</h2><p style="font-size:13px">Télécharge les données dans un fichier (les vidéos restent sur l\'appareil, elles ne sont pas incluses).</p><button class="pri" data-act="export">Exporter la sauvegarde</button></div>'+
-  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Calendriers 2027</h2><p style="font-size:13px">Charge les calendriers prévisionnels 2027 des 4 joueurs dans l\'onglet Calendrier (sans doublon si tu le refais).</p><button class="pri" data-act="loadcal">Charger les calendriers 2027</button></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 27</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
+  return synCard()+themeCard()+coachCodes()+'<div class="card"><h2>Sauvegarde</h2><p style="font-size:13px">Télécharge les données dans un fichier (les vidéos restent sur l\'appareil, elles ne sont pas incluses).</p><button class="pri" data-act="export">Exporter la sauvegarde</button></div>'+
+  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Calendriers 2027</h2><p style="font-size:13px">Charge les calendriers prévisionnels 2027 des 4 joueurs dans l\'onglet Calendrier (sans doublon si tu le refais).</p><button class="pri" data-act="loadcal">Charger les calendriers 2027</button></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 28</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
 }
 function render(){
   var a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.closest("form")&&!pending){pending=true;return}
   pending=false;
-  var v={mes:mesV,jour:jourV,more:moreV,home:homeV,comp:compV,tests:testsV,speed:speedV,forme:formeV,tech:techV,vid:vidV,cal:calV,notes:notesV,data:dataV}[S.tab]();
+  if(isPl()){S.player=ROLE.p;if(S.tab!="home"&&S.tab!="mes")S.tab="home"}
+  var v={mes:mesV,jour:jourV,more:moreV,home:isPl()?plHomeV:homeV,comp:compV,tests:testsV,speed:speedV,forme:formeV,tech:techV,vid:vidV,cal:calV,notes:notesV,data:dataV}[S.tab]();
   var ap=$("#app");ap.className=S.anim?"anim":"";S.anim=false;ap.innerHTML=hdr()+v+navH()+fabH();var _t=new Date().toISOString().slice(0,10);ap.querySelectorAll('input[type=date]').forEach(function(i){if(!i.value&&i.name!="e")i.value=_t});hydrate();
 }
 document.addEventListener("focusout",function(){if(pending)setTimeout(render,150)});
@@ -527,6 +590,9 @@ deltech:function(e){save("tech","all",items("tech","all").filter(function(x){ret
 delvid:function(e){items("videos","all").forEach(function(x){if(x.id==e.v){if(x.assetId)blobDel(x.assetId);if(x.assetId2)blobDel(x.assetId2)}});save("videos","all",items("videos","all").filter(function(x){return x.id!=e.v}));return 1},
 delcal:function(e){save("calprev",S.player,items("calprev",S.player).filter(function(x){return x.id!=e.v}));return 1},
 delnote:function(e){idbDel("notes/"+e.v);delete S.d.notes[e.v];S.d.meta=S.d.meta||{};var tb=S.d.meta.tomb=S.d.meta.tomb||{notes:{}};tb.notes=tb.notes||{};tb.notes[e.v]=Date.now();idbSet("meta/tomb",tb);markDirty("notes__all.json");syncSoon()},
+actcode:function(){var i=$("#acode"),c=parseCode(i&&i.value);if(!c){S.msg="Code non reconnu. Recopie-le en entier.";return}ROLE=c;lset("gp_role",c);S.player=c.p;S.tab="home";S.anim=1;S.msg="Mode joueur activé pour "+c.p+".";SY.st="sync";setTimeout(syncNow,50)},
+plout:function(){try{localStorage.removeItem("gp_role")}catch(e){}ROLE=null;SY.st=tok()?"sync":"off";S.msg="Mode joueur désactivé."},
+gcode:function(e){var i=$("#gk-"+e.v),t=((i&&i.value)||"").trim();if(!/^github_pat_[A-Za-z0-9_]{20,}$/.test(t)){S.msg="Clé invalide pour "+e.v+".";return}var c="JOUEUR:"+e.v+":"+t;S.code={p:e.v,c:c};try{navigator.clipboard&&navigator.clipboard.writeText(c).catch(function(){})}catch(x){}S.msg="Code de "+e.v+" créé (copié si ton iPad l'autorise)."},
 punit:function(e){S.pu=e.v},pdist:function(e){S.pd=S.pd||loadPd();S.pd.d=+e.v;savePd()},pcust:function(){var i=$("#pcd"),v=i?num(i.value):null;if(v==null||v<=0)return;S.pu=S.pu||"m";S.pd=S.pd||loadPd();S.pd.d=+(S.pu=="ft"?v/3.28084:v).toFixed(2);savePd()},
 pres:function(e){S.pd=S.pd||loadPd();S.pd.rows.push([S.pd.d,+e.v]);savePd()},pundo:function(){S.pd=S.pd||loadPd();S.pd.rows.pop();savePd()},pclr:function(){S.pd=S.pd||loadPd();S.pd.rows=[];savePd()},
 pfin:function(){S.pd=S.pd||loadPd();if(!S.pd.rows.length)return;var P=S.player;save("putt","all",items("putt","all").concat([{id:uid(),player:P,date:new Date().toISOString().slice(0,10),rows:S.pd.rows.slice()}]));S.pd.rows=[];savePd();S.msg="Séance de putting enregistrée ("+P+")."},
@@ -615,7 +681,7 @@ function exportAll(){
   var payload=JSON.stringify({exportedAt:new Date().toISOString(),app:app,comps:{Matteo:{items:comps.Matteo},Xander:{items:comps.Xander},Sunil:{items:comps.Sunil},Davon:{items:comps.Davon}}},null,1);
   var b=new Blob([payload],{type:"application/json"}),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download="sauvegarde-golf-"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(a);a.click();setTimeout(function(){a.remove();URL.revokeObjectURL(u)},4000);S.msg="Sauvegarde générée (données, sans les vidéos).";render()}
 render();
-idbAll().then(function(rows){Object.keys(rows).forEach(function(k){var p=k.split("/");S.d[p[0]]=S.d[p[0]]||{};S.d[p[0]][p[1]]=rows[k]});Object.keys(S.d).forEach(function(c){Object.keys(S.d[c]).forEach(function(i){if(S.d[c][i]&&S.d[c][i].items)snapDoc(c,i)})});S.ready.loaded=1;SY.st=tok()?"sync":"off";render();syncNow();
+idbAll().then(function(rows){Object.keys(rows).forEach(function(k){var p=k.split("/");S.d[p[0]]=S.d[p[0]]||{};S.d[p[0]][p[1]]=rows[k]});Object.keys(S.d).forEach(function(c){Object.keys(S.d[c]).forEach(function(i){if(S.d[c][i]&&S.d[c][i].items)snapDoc(c,i)})});S.ready.loaded=1;SY.st=tokAny()?"sync":"off";render();syncNow();
   if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){})}).catch(function(){S.msg="Stockage indisponible (navigation privée ?). Rien ne sera enregistré.";render()});
 document.addEventListener("visibilitychange",function(){if(!document.hidden)syncSoon()});window.addEventListener("online",syncSoon);
 if("serviceWorker" in navigator)window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})});
