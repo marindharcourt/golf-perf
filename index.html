@@ -428,12 +428,12 @@ function stars(n){return'<span style="color:#c9a227;letter-spacing:1px">'+"★".
 function summStar(rows){var o=[1,2,3].map(function(k){return{k:k,n:0,pu:0,sg:0}});rows.forEach(function(r){var b=o[(r[2]||1)-1];if(!b)return;b.n++;b.pu+=r[1];b.sg+=expP(r[0])-r[1]});return o}
 function starTbl(rows){return'<div class="sc"><table><tr><th>Pente</th><th>Trous</th><th>Putts</th><th>SG</th><th>SG/trou</th></tr>'+summStar(rows).filter(function(b){return b.n}).map(function(b){return"<tr><td>"+stars(b.k)+"</td><td>"+b.n+"</td><td>"+b.pu+'</td><td class="'+sgc(b.sg)+'"><b>'+sg(b.sg)+'</b></td><td class="'+sgc(b.sg)+'">'+sg(b.sg/b.n)+"</td></tr>"}).join("")+"</table></div>"}
 function ptestH(){
-  var k=S.pm,T=PT[k],P=S.player;S.pt=S.pt||loadPt();var r=S.pt[k]||[],i=r.length,h="";
-  h+='<div class="card"><h2>Test putting '+T.n+" · "+T.sub+" · "+P+'</h2><div class="dim" style="font-size:12px;margin-bottom:8px">18 situations, toujours les mêmes : tu peux comparer d\'une séance à l\'autre. Pente : '+stars(1)+" plat, "+stars(2)+" un peu de pente, "+stars(3)+" beaucoup de pente.</div>"+segH("punit",S.pu||"m",[["m","Mètres"],["ft","Pieds"]]);
+  var k=S.pm,T=PT[k],P=S.player;S.pt=S.pt||loadPt();if(!S.pu)S.pu="m";var r=S.pt[k]||[],i=r.length,h="";
+  h+='<div class="card"><h2>Test '+T.n+" · "+T.sub+"</h2>"+(i==0?'<div class="dim" style="font-size:12px;margin-bottom:6px">18 situations, toujours les mêmes. Pente : '+stars(1)+" plat, "+stars(2)+" un peu de pente, "+stars(3)+" beaucoup de pente.</div>":"");
   if(i<18){var d=T.s[i][0],st=T.s[i][1],e=expP(d);
     h+='<div style="height:6px;background:var(--input);border-radius:6px;margin:10px 0"><div style="height:6px;border-radius:6px;background:var(--accent,#2f9bb5);width:'+(i/18*100)+'%"></div></div>'+
     '<div style="text-align:center;margin:6px 0 10px"><div class="dim" style="font-size:12px">Trou '+(i+1)+" / 18</div><div style=\"font-size:38px;font-weight:800\">"+dsp(d)+'</div><div style="font-size:24px;margin:2px 0">'+stars(st)+'</div><div class="dim" style="font-size:12px">Putts attendus (référence) : <b>'+fmt(e,2)+"</b></div></div>"+
-    '<div class="pres">'+[1,2,3,4].map(function(q){var g=e-q;return'<button data-act="ptres" data-v="'+q+'"><b>'+q+(q==1?" putt":" putts")+'</b><span class="'+sgc(g)+'">'+sg(g)+"</span></button>"}).join("")+"</div>";
+    '<div class="pres">'+[1,2,3,4].map(function(q){var g=e-q;return'<button data-act="ptres" data-v="'+q+'"><b>'+q+(q==1?" putt":" putts")+'</b><span class="'+sgc(g)+'">'+sg(g)+"</span></button>"}).join("")+"</div>"+segH("punit",S.pu||"m",[["m","Mètres"],["ft","Pieds"]]);
     if(i){var rs=summP(r.map(function(x,j){return[T.s[j][0],x]}));h+='<div class="dim" style="font-size:12px;margin:10px 0 4px">Dernier trou : '+dsp(T.s[i-1][0])+" en "+r[i-1]+' putt'+(r[i-1]>1?"s":"")+" · SG du test jusqu'ici : <b class=\""+sgc(rs.sg)+'">'+sg(rs.sg)+"</b></div>"+
       '<div style="display:flex;gap:8px;margin-top:8px"><button class="ghost" data-act="ptundo">Annuler le dernier</button><button class="ghost" data-act="ptclr">Recommencer</button></div>'}
   }else{
@@ -473,7 +473,7 @@ function puttV(){
 function mesV(){return segH("mseg",S.mes,[["speed","Vitesse"],["tests","Tests"],["putt","Putting"]])+(S.mes=="tests"?testsV():S.mes=="putt"?puttV():speedV())}
 function jourV(){return segH("jseg",S.jr,[["tech","Technique"],["notes","Notes"]])+(S.jr=="notes"?notesV():techV())}
 function fabH(){
-  if(S.tab=="data")return"";
+  if(S.tab=="data"||(S.tab=="mes"&&S.mes=="putt"&&S.pm&&S.pm!="free"))return"";
   var h='<button class="fab" data-act="fab" aria-label="Ajouter">+</button>';
   if(!S.fab)return h;
   var K=isPl()?[["speed","Vitesse"],["tests","Test"]]:[["speed","Vitesse"],["tests","Test"],["tech","Technique"],["notes","Note"],["vid","Vidéo"]],k=S.fab,td=new Date().toISOString().slice(0,10),f="";
@@ -604,7 +604,7 @@ function notesV(){
 function themeCard(){var v=null;try{v=localStorage.getItem("gp_theme")}catch(e){}return'<div class="card"><h2>Apparence</h2>'+segH("theme",v||"auto",[["auto","Auto"],["light","Clair"],["dark","Sombre"]])+'<div class="dim" style="font-size:12px;margin-top:8px">Auto suit le réglage de l\'iPad (clair le jour, sombre le soir).</div></div>'}
 function dataV(){
   return synCard()+themeCard()+coachCodes()+'<div class="card"><h2>Sauvegarde</h2><p style="font-size:13px">Télécharge les données dans un fichier (les vidéos restent sur l\'appareil, elles ne sont pas incluses).</p><button class="pri" data-act="export">Exporter la sauvegarde</button></div>'+
-  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Calendriers 2027</h2><p style="font-size:13px">Charge les calendriers prévisionnels 2027 des 4 joueurs dans l\'onglet Calendrier (sans doublon si tu le refais).</p><button class="pri" data-act="loadcal">Charger les calendriers 2027</button></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 33</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
+  '<div class="card"><h2>Importer</h2><p style="font-size:13px">Fichier de sauvegarde de cette application <b>ou</b> de l\'ancien dashboard (compétitions + vitesses). Les données existantes sont conservées, les doublons ignorés.</p><input type="file" id="imp"></div>'+'<div class="card"><h2>Calendriers 2027</h2><p style="font-size:13px">Charge les calendriers prévisionnels 2027 des 4 joueurs dans l\'onglet Calendrier (sans doublon si tu le refais).</p><button class="pri" data-act="loadcal">Charger les calendriers 2027</button></div>'+'<div class="card"><h2>Import par copier-coller</h2><div class="dim" style="font-size:11px;margin-bottom:6px">Version 34</div><p style="font-size:13px">Si le choix de fichier ne marche pas : copie tout le contenu du fichier de données, colle-le ici, puis valide.</p><textarea id="pastebox" placeholder="Colle ici le contenu du fichier…" style="margin-bottom:8px"></textarea><button class="pri" data-act="paste">Importer le texte collé</button></div>'
 }
 function render(){
   var a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.closest("form")&&!pending){pending=true;return}
